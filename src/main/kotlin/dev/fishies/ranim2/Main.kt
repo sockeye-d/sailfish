@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
+import androidx.compose.material.DrawerDefaults.shape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.LaunchedEffect
@@ -13,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.loadSvgPainter
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -34,6 +35,7 @@ import dev.fishies.ranim2.core.animation
 import dev.fishies.ranim2.core.tween
 import dev.fishies.ranim2.core.yield
 import dev.fishies.ranim2.elements.makePainter
+import dev.fishies.ranim2.elements.makeText
 import dev.fishies.ranim2.ranim2.generated.resources.Res
 import dev.fishies.ranim2.ranim2.generated.resources.skull_list
 import dev.fishies.ranim2.tweener.In
@@ -74,16 +76,17 @@ val anim = animation {
     val resource = Res.drawable.skull_list
     //val painter = loadSvg("drawable/skull_list.svg")
     val painter = loadImage("drawable/cat_thumbsup.webp")
-    val shape = makePainter(
-        painter,
-        //tint = Color.Red,
-        rotation = 40f,
-        //color = Color.Black,
-        //position = Offset(20f, 100f),
-        //radius = 8.0f,
-        //style = Stroke(width = 2.0f)
-    )
-    shape.size *= 0.05f
+    //val shape = makePainter(
+    //    painter,
+    //    //tint = Color.Red,
+    //    rotation = 40f,
+    //    //color = Color.Black,
+    //    //position = Offset(20f, 100f),
+    //    //radius = 8.0f,
+    //    //style = Stroke(width = 2.0f)
+    //)
+    val shape = makeText("This is some text", FontFamily.Monospace)
+    //shape.size *= 0.05f
     val length = 120
     while (true) {
         yield(
