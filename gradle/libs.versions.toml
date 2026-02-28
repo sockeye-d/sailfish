@@ -1,0 +1,19 @@
+[versions]
+kotlin = "2.3.0"
+compose-hotReload = "1.0.0"
+compose = "1.10.0"
+kotlinx-coroutines = "1.10.2"
+androidx-lifecycle = "2.9.6"
+material3 = "1.10.0-alpha05"
+material-icons = "1.7.3"
+
+[libraries]
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+compose-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose" }
+material-icons = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "material-icons" }
+
+[plugins]
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hotReload" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
