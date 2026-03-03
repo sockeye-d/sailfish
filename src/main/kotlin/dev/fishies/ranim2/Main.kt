@@ -78,7 +78,7 @@ import kotlin.time.Duration.Companion.milliseconds
 val anim = animation {
     val lang = Language(TreeSitterKotlin.language())
     val parser = Parser(lang)
-    val tree = parser.parse("""fun main() { println("Hello world!") }""")
+    val tree = parser.parse("""fun main() { println("Hello world!!") }""")
     println(tree)
     //val shape = makeRectangle(
     //    size = Size(50f, 50f),
