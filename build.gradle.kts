@@ -15,6 +15,8 @@ dependencies {
     implementation(libs.compose.resources)
     implementation(libs.material.icons)
     implementation(libs.kotlin.reflect)
+    implementation(libs.treesitter)
+    implementation(projects.languages.kotlin)
 }
 
 kotlin {

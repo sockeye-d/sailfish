@@ -40,12 +40,16 @@ import dev.fishies.ranim2.core.yield
 import dev.fishies.ranim2.elements.makePainter
 import dev.fishies.ranim2.elements.makeRectangle
 import dev.fishies.ranim2.elements.makeText
+import dev.fishies.ranim2.languages.kotlin.TreeSitterKotlin
+//import dev.fishies.ranim2.languages.kotlin.TreeSitterKotlin
 import dev.fishies.ranim2.ranim2.generated.resources.Res
 import dev.fishies.ranim2.ranim2.generated.resources.skull_list
 import dev.fishies.ranim2.tweener.In
 import dev.fishies.ranim2.tweener.Out
 import dev.fishies.ranim2.tweener.quadratic
 import dev.fishies.ranim2.tweener.quartic
+import io.github.treesitter.ktreesitter.Language
+import io.github.treesitter.ktreesitter.Parser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -72,6 +76,10 @@ import kotlin.time.Duration.Companion.milliseconds
 //}
 
 val anim = animation {
+    val lang = Language(TreeSitterKotlin.language())
+    val parser = Parser(lang)
+    val tree = parser.parse("""fun main() { println("Hello world!") }""")
+    println(tree)
     //val shape = makeRectangle(
     //    size = Size(50f, 50f),
     //    color = Color.Black,
