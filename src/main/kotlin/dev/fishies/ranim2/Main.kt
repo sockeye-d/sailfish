@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Density
@@ -33,10 +32,9 @@ import dev.fishies.ranim2.elements.makeText
 import dev.fishies.ranim2.languages.odin.TreeSitterOdin
 import dev.fishies.ranim2.ranim2.generated.resources.Res
 import dev.fishies.ranim2.syntax.SyntaxHighlighterTheme
-import dev.fishies.ranim2.syntax.highlight
+import dev.fishies.ranim2.syntax.highlightToAnnotations
 import dev.fishies.ranim2.tweener.Out
 import dev.fishies.ranim2.tweener.quadratic
-import io.github.treesitter.ktreesitter.QueryMatch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -73,12 +71,6 @@ fun String.toComposeColor() = removePrefix("#").run {
 
 val catppuccinMocha = loadJson<SyntaxHighlighterTheme>("files/catppuccin-mocha.json")
 
-fun Sequence<QueryMatch>.toAnnotations(byteToIndex: UInt.() -> Int) = mapNotNull { q ->
-    q.captures.firstOrNull()?.let {
-        AnnotatedString.Range(catppuccinMocha[it.name], it.node.startByte.byteToIndex(), it.node.endByte.byteToIndex())
-    }
-}.sortedBy { it.start }
-
 @OptIn(ExperimentalTextApi::class)
 val anim = animation {
     val code = """
@@ -88,9 +80,7 @@ for character in some_string {
 }""".trimMargin()
     println(code)
     val shape = makeText(code, FontFamily("Iosevka Nerd Font"), color = catppuccinMocha["text"].color)
-    val textBytes = shape.text.toByteArray(Charsets.UTF_8)
-    shape.annotations = TreeSitterOdin.highlight(shape.text)
-        .toAnnotations { textBytes.sliceArray(0..<this.toInt()).toString(Charsets.UTF_8).length }.toList()
+    shape.annotations = TreeSitterOdin.highlightToAnnotations(shape.text)
     val length = 120
     yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
 }
