@@ -6,7 +6,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.createCoroutine
 import kotlin.coroutines.resume
 
-class AnimatedScene : Scene(), Animated {
+class Animation : CompositeElement(), Animated {
     internal lateinit var continuation: Continuation<Unit>
     override var isFinished = false
 
@@ -24,10 +24,10 @@ class AnimatedScene : Scene(), Animated {
  * Runs [animations] in parallel. If any of them inherit from [Element], they are automatically added as children to
  * be drawn, and automatically removed once they finish.
  */
-suspend fun AnimatedScene.yield(vararg animations: Animated) {
+suspend fun Animation.yield(vararg animations: Animated) {
     val elements = animations.filterIsInstance<Element>()
     val finishedAnimations = mutableSetOf<Animated>()
-    children += elements
+    addChild(elements)
     while (finishedAnimations.size < animations.size) {
         for (animation in animations.filter { it !in finishedAnimations }) {
             animation.tick()
@@ -35,20 +35,20 @@ suspend fun AnimatedScene.yield(vararg animations: Animated) {
                 finishedAnimations.add(animation)
 
                 if (animation !is Element) continue
-                children -= animation
+                removeChild(animation)
             }
         }
         yield()
     }
 }
 
-suspend fun AnimatedScene.yield(frames: Frames) {
+suspend fun Animation.yield(frames: Frames) {
     for (frame in 1..frames) {
         yield()
     }
 }
 
-fun animation(block: suspend AnimatedScene.() -> Unit) = AnimatedScene().apply {
+fun animation(block: suspend Animation.() -> Unit) = Animation().apply {
     continuation = block.createCoroutine(
         receiver = this,
         completion = Continuation(EmptyCoroutineContext) { result ->

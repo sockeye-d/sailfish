@@ -18,7 +18,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.unit.*
-import dev.fishies.ranim2.core.Scene
+import dev.fishies.ranim2.core.CompositeElement
 
 typealias TextAnnotation = AnnotatedString.Range<out AnnotatedString.Annotation>
 
@@ -31,7 +31,6 @@ open class TextElement(
     tint: Color,
     annotations: List<TextAnnotation>,
 ) : BasicElement(position) {
-
     private operator fun State<Size>.setValue(
         thisObj: Any?,
         property: Any?,
@@ -68,7 +67,7 @@ open class TextElement(
     }
 }
 
-fun Scene.makeText(
+fun CompositeElement.makeText(
     text: String,
     fontFamily: FontFamily = FontFamily.Default,
     position: Offset = Offset.Zero,

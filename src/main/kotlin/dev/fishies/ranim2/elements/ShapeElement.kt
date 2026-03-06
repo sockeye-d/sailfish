@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.*
-import dev.fishies.ranim2.core.Scene
+import dev.fishies.ranim2.core.CompositeElement
 
 class ShapeElement(shape: Shape, position: Offset, size: Size, rotation: Float, color: Color, style: DrawStyle) :
     BasicElement(position, size) {
@@ -38,16 +38,16 @@ class ShapeElement(shape: Shape, position: Offset, size: Size, rotation: Float, 
     }
 }
 
-fun Scene.makeShape(
+fun CompositeElement.makeShape(
     shape: Shape,
     size: Size,
     color: Color,
     style: DrawStyle = Fill,
     position: Offset = Offset.Zero,
     rotation: Float = 0f,
-) = ShapeElement(shape, position, size, rotation, color, style).also { addChild(it) }
+) = ShapeElement(shape, position, size, rotation, color, style).also(this::addChild)
 
-fun Scene.makeCircle(
+fun CompositeElement.makeCircle(
     size: Size,
     color: Color,
     style: DrawStyle = Fill,
@@ -55,7 +55,7 @@ fun Scene.makeCircle(
     rotation: Float = 0f,
 ) = makeShape(CircleShape, size, color, style, position, rotation)
 
-fun Scene.makeRectangle(
+fun CompositeElement.makeRectangle(
     size: Size,
     color: Color,
     style: DrawStyle = Fill,

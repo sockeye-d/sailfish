@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.painter.Painter
-import dev.fishies.ranim2.core.Scene
+import dev.fishies.ranim2.core.CompositeElement
 
 class PainterElement(val painter: Painter, position: Offset, size: Size, rotation: Float, tint: Color?) :
     BasicElement(position, size) {
@@ -32,7 +32,7 @@ class PainterElement(val painter: Painter, position: Offset, size: Size, rotatio
     }
 }
 
-fun Scene.makePainter(
+fun CompositeElement.makePainter(
     painter: Painter,
     position: Offset = Offset.Zero,
     size: Size = painter.intrinsicSize,

@@ -47,12 +47,7 @@ fun <T : Any> KMutableProperty<T>.tween(
     animator: (from: T, to: T, factor: Double) -> T,
     tweener: (Double) -> Double = { it },
 ) = TweenAnimated(
-    property = this,
-    from = from ?: this.getter.call(),
-    to = to,
-    length = length,
-    animator = animator,
-    tweener = tweener
+    property = this, from = from ?: this.getter.call(), to = to, length = length, animator = animator, tweener = tweener
 )
 
 fun KMutableProperty<Float>.tween(
@@ -66,6 +61,24 @@ fun KMutableProperty<Float>.tween(
     to = to,
     length = length,
     animator = { from, to, factor -> from + (to - from) * factor.toFloat() },
+    tweener = tweener
+)
+
+/**
+ * Please don't use on null properties, or provide a [from].
+ */
+@JvmName("tweenFloatNull")
+fun KMutableProperty<Float?>.tween(
+    from: Float? = null,
+    to: Float,
+    length: Frames,
+    tweener: (Double) -> Double = { it },
+) = TweenAnimated(
+    property = this,
+    from = from ?: this.getter.call()!!,
+    to = to,
+    length = length,
+    animator = { from, to, factor -> from!! + (to!! - from) * factor.toFloat() },
     tweener = tweener
 )
 
@@ -159,10 +172,7 @@ fun KMutableProperty<Matrix>.tween(
     length: Frames,
     tweener: (Double) -> Double = { it },
 ) = TweenAnimated(
-    property = this,
-    from = from ?: this.getter.call(),
-    to = to,
-    length = length,
-    animator = { from, to, factor -> Matrix(from.values.zip(to.values).map { (a, b) -> lerp(a, b, factor.toFloat()) }.toFloatArray()) },
-    tweener = tweener
+    property = this, from = from ?: this.getter.call(), to = to, length = length, animator = { from, to, factor ->
+        Matrix(from.values.zip(to.values).map { (a, b) -> lerp(a, b, factor.toFloat()) }.toFloatArray())
+    }, tweener = tweener
 )

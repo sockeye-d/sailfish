@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -19,22 +20,22 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import dev.fishies.ranim2.containers.boxContainer
+import dev.fishies.ranim2.containers.fraction
 import dev.fishies.ranim2.core.animation
 import dev.fishies.ranim2.core.tween
 import dev.fishies.ranim2.core.yield
-import dev.fishies.ranim2.elements.makeText
-import dev.fishies.ranim2.languages.odin.TreeSitterOdin
+import dev.fishies.ranim2.elements.makePainter
+import dev.fishies.ranim2.elements.makeRectangle
 import dev.fishies.ranim2.ranim2.generated.resources.Res
 import dev.fishies.ranim2.syntax.SyntaxHighlighterTheme
-import dev.fishies.ranim2.syntax.highlightToAnnotations
-import dev.fishies.ranim2.tweener.Out
-import dev.fishies.ranim2.tweener.quadratic
+import dev.fishies.ranim2.tweener.InOut
+import dev.fishies.ranim2.tweener.cubic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -71,18 +72,55 @@ fun String.toComposeColor() = removePrefix("#").run {
 
 val catppuccinMocha = loadJson<SyntaxHighlighterTheme>("files/catppuccin-mocha.json")
 
+fun subAnimation() = animation {
+    //val circle = makeRectangle(Size(20f, 20f), Color.Red)
+    val circle = makePainter(loadImage("drawable/bug.png"))
+    circle.size *= 0.1f
+
+    repeat(50) {
+        yield(circle::position.tween(to = Offset(10f, it * 10f), length = 50, tweener = cubic(InOut)))
+        yield(frames = 20)
+    }
+}
+
 @OptIn(ExperimentalTextApi::class)
 val anim = animation {
-    val code = """
-some_string := "Hello, 世界"
-for character in some_string {
-	fmt.println(character)
-}""".trimMargin()
-    println(code)
-    val shape = makeText(code, FontFamily("Iosevka Nerd Font"), color = catppuccinMocha["text"].color)
-    shape.annotations = TreeSitterOdin.highlightToAnnotations(shape.text)
-    val length = 120
-    yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
+//    val code = """
+//val shape = makeText(code, FontFamily("Iosevka Nerd Font"), color = catppuccinMocha["text"].color)
+//shape.annotations = TreeSitterOdin.highlightToAnnotations(shape.text)
+//val length = 120
+//yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
+//yield(subAnimation())
+//while (true) {
+//    yield(shape::position.tween(to = Offset(20f, 400f), length = length, tweener = quadratic(Out)))
+//    yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
+//}""".trimMargin()
+//    val shape = makeText(code, FontFamily("Iosevka Nerd Font"), color = catppuccinMocha["text"].color)
+//    shape.annotations = TreeSitterOdin.highlightToAnnotations(shape.text, catppuccinMocha)
+//    val length = 120
+//    yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
+//    yield(subAnimation())
+//    while (true) {
+//        yield(shape::position.tween(to = Offset(20f, 400f), length = length, tweener = quadratic(Out)))
+//        yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
+//    }
+//    val container = BoxContainer(Axis.X, 3.0f)
+//    addChild(container)
+    val container = boxContainer {
+        size = Size(500f, 50f)
+        makeRectangle(Size(20f, 20f), Color.Red, radius = 2.0f)
+    }
+
+    val greenRect = container.makeRectangle(Size(20f, 20f), Color.Green, radius = 2.0f)
+    greenRect.fraction = 1.0f
+
+    val blueRect = container.makeRectangle(Size(30f, 20f), Color.Blue, radius = 2.0f)
+    blueRect.fraction = 1.0f
+
+    yield(greenRect::fraction.tween(to = 0.5f, length = 500, tweener = cubic(InOut)))
+    while (true) {
+        yield()
+    }
 }
 
 private fun loadSvg(path: String): Painter =
@@ -105,6 +143,7 @@ fun main() = application {
     val layer = withCompositionLocal(LocalGraphicsContext provides SkiaGraphicsContext()) {
         val graphicsLayer = rememberGraphicsLayer()
         graphicsLayer.record(Density(3f), LayoutDirection.Ltr, IntSize(300, 300)) {
+            anim.runLayoutPass()
             with(anim) { draw() }
         }
         graphicsLayer
