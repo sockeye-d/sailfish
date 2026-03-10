@@ -1,15 +1,24 @@
 package dev.fishies.ranim2.core
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.window.WindowPosition.PlatformDefault.x
+import androidx.compose.ui.window.WindowPosition.PlatformDefault.y
+import dev.fishies.ranim2.languages.common.TreeSitterLanguage
+import dev.fishies.ranim2.syntax.highlightToAnnotations
+import dev.fishies.ranim2.theming.theme
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.decodeToSvgPainter
 import java.net.URI
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 fun Size.coerceAtLeast(minimumSize: Size) =
     Size(width.coerceAtLeast(minimumSize.width), height.coerceAtLeast(minimumSize.height))
@@ -67,3 +76,25 @@ inline operator fun Size.minus(other: Size) = Size(width - other.width, height -
 
 @Suppress("NOTHING_TO_INLINE")
 inline operator fun Size.plus(other: Size) = Size(width + other.width, height + other.height)
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun Size.toOffset() = Offset(width, height)
+
+@Suppress("NOTHING_TO_INLINE")
+inline operator fun Offset.times(other: Offset) = Offset(x * other.x, y * other.y)
+
+context(element: Element)
+inline val TreeSitterLanguage.Highlightable.highlighter
+    get() = { text: String -> highlightToAnnotations(text, element.theme.syntax) }
+
+inline fun StringBuilder.appendBlock(opening: String = "{", closing: String = "}", indent: String = "    ", block: StringBuilder.() -> Unit) {
+    contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
+    val content = buildString(block).trimEnd()
+    if (content.isBlank()) {
+        append("$opening$closing")
+        return
+    }
+    appendLine(opening)
+    appendLine(content.prependIndent(indent))
+    append(closing)
+}

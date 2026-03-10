@@ -1,6 +1,4 @@
-import org.gradle.internal.impldep.org.eclipse.jgit.diff.Subsequence.a
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     alias(libs.plugins.composeHotReload)
@@ -26,6 +24,11 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+    compilerOptions {
+        optIn.add("kotlin.contracts.ExperimentalContracts")
+        freeCompilerArgs.add("-Xcontext-parameters")
+        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
+    }
 }
 
 compose.resources {}

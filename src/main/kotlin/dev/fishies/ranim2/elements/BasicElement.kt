@@ -20,5 +20,5 @@ abstract class BasicElement(position: Offset, size: Size = Size.Unspecified) : E
     override var size by mutableStateOf(size)
     override var visible by mutableStateOf(true)
 
-    override val minimumSize by derivedStateOf { size }
+    override val minimumSize = size
 }

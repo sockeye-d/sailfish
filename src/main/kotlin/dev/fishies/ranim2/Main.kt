@@ -3,11 +3,7 @@ package dev.fishies.ranim2
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Button
-import androidx.compose.material.LocalContentColor
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withCompositionLocal
@@ -24,16 +20,20 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import dev.fishies.ranim2.containers.Axis
-import dev.fishies.ranim2.containers.linearContainer
+import dev.fishies.ranim2.containers.Anchor
+import dev.fishies.ranim2.containers.anchor
+import dev.fishies.ranim2.containers.boxContainer
 import dev.fishies.ranim2.containers.fraction
+import dev.fishies.ranim2.containers.linearContainer
 import dev.fishies.ranim2.core.*
+import dev.fishies.ranim2.elements.ShapeElement
 import dev.fishies.ranim2.elements.makePainter
 import dev.fishies.ranim2.elements.makeRectangle
 import dev.fishies.ranim2.elements.makeText
@@ -46,12 +46,10 @@ import dev.fishies.ranim2.tweener.InOut
 import dev.fishies.ranim2.tweener.Out
 import dev.fishies.ranim2.tweener.cubic
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.time.Duration.Companion.milliseconds
 
 //private fun svgPainter(resource: DrawableResource): Painter {
 //    resource
@@ -69,12 +67,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 val catppuccinMocha = loadJson<Theme>(Res.getUri("files/catppuccin-mocha.json"))
 
-fun subAnimation() = animation {
-    //val circle = makeRectangle(Size(20f, 20f), Color.Red)
+fun bug() = animation {
     val circle = makePainter(loadImage(Res.getUri("drawable/bug.png")))
     circle.size *= 0.1f
 
-    repeat(50) {
+    repeat(10) {
         yield(circle::position.tween(to = Offset(10f, it * 10f), length = 50, tweener = cubic(InOut)))
         yield(frames = 20)
     }
@@ -82,73 +79,57 @@ fun subAnimation() = animation {
 
 @OptIn(ExperimentalTextApi::class)
 val anim = animation {
-    println(theme.primary)
     theme = catppuccinMocha
-    println(theme.primary)
-    println(catppuccinMocha.primary)
-    //println(attachedProperties)
-    //println(attachedProperties)
-    //withAmbientValue(::theme to catppuccinMocha) {}
-//    val code = """
-//val shape = makeText(code, FontFamily("Iosevka Nerd Font"), color = catppuccinMocha["text"].color)
-//shape.annotations = TreeSitterOdin.highlightToAnnotations(shape.text)
-//val length = 120
-//yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
-//yield(subAnimation())
-//while (true) {
-//    yield(shape::position.tween(to = Offset(20f, 400f), length = length, tweener = quadratic(Out)))
-//    yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
-//}""".trimMargin()
-//    val shape = makeText(code, FontFamily("Iosevka Nerd Font"), color = catppuccinMocha["text"].color)
-//    shape.annotations = TreeSitterOdin.highlightToAnnotations(shape.text, catppuccinMocha)
-//    val length = 120
-//    yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
-//    yield(subAnimation())
-//    while (true) {
-//        yield(shape::position.tween(to = Offset(20f, 400f), length = length, tweener = quadratic(Out)))
-//        yield(shape::position.tween(to = Offset(20f, 40f), length = length, tweener = quadratic(Out)))
-//    }
-//    val container = BoxContainer(Axis.X, 3.0f)
-//    addChild(container)
-    val container = linearContainer {
-        size = Size(500f, 50f)
-        separation = 5.0f
-        val color = theme.primary
-        println(theme.primary)
-        makeText("This is some really cool text that is somewhat long and I'm just padding its length").apply {
-            size = Size(100f, Float.NaN)
-        }
-        makeRectangle(Size(20f, 20f), color, radius = 2.0f)
-    }
-
-    val blueRect = container.linearContainer {
-        axis = Axis.Y
-        separation = 5.0f
-        makeRectangle(Size(30f, 20f), theme.secondary, radius = 2.0f)
-        makeRectangle(Size(30f, 10.0f), theme.primaryVariant, radius = 2.0f).apply {
-            fraction = 0.5f
-        }
-        makeRectangle(Size(30f, 0.0f), theme.secondaryVariant, radius = 2.0f).apply {
-            fraction = 1.0f
+    var inner: Element
+    Container.drawContainerOutlines = true
+    val container = boxContainer {
+        inner = linearContainer(separation = 3.0f) {
+            anchor = Anchor.center
+            makeRectangle(Size(20f, 20f), theme.primary, radius = 5.0f)() {
+                fraction = 1.0f
+            }
+            boxContainer {
+                fraction = 1.0f
+                makeRectangle(Size(20f, 20f), theme.secondary, radius = 5.0f)
+                makeText("This is some text!", color = theme.onSecondary)() {
+                    alignment = Center
+                    anchor = Anchor.Wide.m
+                }
+            }
+            makeRectangle(Size(20f, 20f), theme.primaryVariant, radius = 5.0f)() {
+                fraction = 1.0f
+            }
         }
     }
 
-    val greenRect = container.makeRectangle(Size(20f, 20f), theme.surface, radius = 2.0f).apply {
-        fraction = 1.0f
-    }
+    yield(container::size.tween(to = Size(500f, 120f), length = 200, tweener = cubic(Out)))
+    //yield(bug())
 
-    blueRect.fraction = 1.0f
+    yield(
+        animation {
+            while (true) {
+                fun animateInnerTo(anchor: Anchor, length: Int = 100) =
+                    inner::anchor.tween(to = anchor, length = length, tweener = cubic(InOut))
 
-    while (true) {
-        yield(
-            greenRect::fraction.tween(to = 0.5f, length = 500, tweener = cubic(InOut)),
-            container::size.tween(to = Size(500f, 120f), length = 500, tweener = cubic(Out)),
-        )
-        yield(
-            greenRect::fraction.tween(to = 1.0f, length = 500, tweener = cubic(InOut)),
-            container::size.tween(to = Size(500f, 50f), length = 500, tweener = cubic(Out)),
-        )
-    }
+                yield(animateInnerTo(Anchor.Shrink.tl, 200))
+                yield(animateInnerTo(Anchor.Shrink.tm))
+                yield(animateInnerTo(Anchor.Shrink.tr))
+                yield(animateInnerTo(Anchor.Shrink.ml))
+                yield(animateInnerTo(Anchor.Shrink.mm))
+                yield(animateInnerTo(Anchor.Shrink.mr))
+                yield(animateInnerTo(Anchor.Shrink.bl))
+                yield(animateInnerTo(Anchor.Shrink.bm))
+                yield(animateInnerTo(Anchor.Shrink.br))
+                yield(animateInnerTo(Anchor.fill, 200))
+            }
+        },
+        //animation {
+        //    while (true) {
+        //        yield(inner::color.tween(to = theme.secondary, length = 50, tweener = cubic(Out)))
+        //        yield(inner::color.tween(to = theme.primary, length = 50, tweener = cubic(Out)))
+        //    }
+        //}
+    )
 }
 
 @OptIn(InternalComposeUiApi::class)
@@ -186,9 +167,15 @@ fun main() = application {
                                 Text("Save image")
                             }
 
+                            Button({ println(anim.treeString()) }) {
+                                Text("Dump scene tree")
+                            }
+
                             Row {
                                 Text("Debug layout bounds", Modifier.align(Alignment.CenterVertically))
-                                Switch(Container.drawContainerOutlines, { Container.drawContainerOutlines = it })
+                                with(Container) {
+                                    Switch(drawContainerOutlines, { drawContainerOutlines = it })
+                                }
                             }
                         }
                     }

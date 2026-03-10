@@ -17,4 +17,16 @@ interface Element {
     fun DrawScope.draw()
 
     fun runLayoutPass()
+
+    operator fun <T : Element> T.invoke(block: T.() -> Unit) = apply(block)
+}
+
+fun Element.treeString(): String = buildString {
+    val element = this@treeString
+    append("${element::class.simpleName}($element) ")
+    appendBlock {
+        for (child in children) {
+            appendLine(child.treeString())
+        }
+    }
 }

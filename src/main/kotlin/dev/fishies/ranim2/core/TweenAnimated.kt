@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
+import dev.fishies.ranim2.containers.Anchor
+import dev.fishies.ranim2.containers.lerp
 import kotlin.reflect.KMutableProperty
 
 typealias Frames = Int
@@ -160,6 +162,20 @@ fun KMutableProperty<Size>.tween(
 ) = TweenAnimated(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
+    to = to,
+    length = length,
+    animator = { from, to, factor -> lerp(from, to, factor.toFloat()) },
+    tweener = tweener
+)
+
+fun KMutableProperty<Anchor>.tween(
+    from: Anchor? = null,
+    to: Anchor,
+    length: Frames,
+    tweener: (Double) -> Double = { it },
+) = TweenAnimated(
+    property = this,
+    from = from ?: this.getter.call(),
     to = to,
     length = length,
     animator = { from, to, factor -> lerp(from, to, factor.toFloat()) },

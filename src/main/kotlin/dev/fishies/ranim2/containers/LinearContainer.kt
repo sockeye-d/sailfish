@@ -168,4 +168,3 @@ fun CompositeElement.linearContainer(
     separation: Float = 0.0f,
     contents: LinearContainer.() -> Unit,
 ) = LinearContainer(axis, separation).also(::addChild).apply(contents)
-
