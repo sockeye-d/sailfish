@@ -16,12 +16,12 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.full.createInstance
 import kotlin.to
 
-open class CompositeElement : Element {
+open class CompositeElement(_position: Offset = Offset.Zero, _size: Size = Size.Unspecified) : Element {
     override var attachedProperties by mutableStateOf(emptyMap<KClass<*>, Any?>())
 
     override var parent: Element? by mutableStateOf(null)
-    override var position by mutableStateOf(Offset.Zero)
-    override var size by mutableStateOf(Size.Unspecified)
+    override var position by mutableStateOf(_position)
+    override var size by mutableStateOf(_size)
     override val minimumSize: Size
         get() = Size(children.maxOf { it.minimumSize.width }, children.maxOf { it.minimumSize.height })
     override var visible by mutableStateOf(true)

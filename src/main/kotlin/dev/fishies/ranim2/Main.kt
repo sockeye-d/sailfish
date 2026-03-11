@@ -6,6 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withCompositionLocal
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
@@ -13,11 +17,14 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.SkiaGraphicsContext
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.style.TextAlign
@@ -28,12 +35,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import dev.fishies.ranim2.containers.Anchor
+import dev.fishies.ranim2.containers.BoxContainer
 import dev.fishies.ranim2.containers.anchor
 import dev.fishies.ranim2.containers.boxContainer
 import dev.fishies.ranim2.containers.fraction
 import dev.fishies.ranim2.containers.linearContainer
 import dev.fishies.ranim2.core.*
 import dev.fishies.ranim2.elements.ShapeElement
+import dev.fishies.ranim2.elements.layer
 import dev.fishies.ranim2.elements.makePainter
 import dev.fishies.ranim2.elements.makeRectangle
 import dev.fishies.ranim2.elements.makeText
@@ -82,28 +91,34 @@ val anim = animation {
     theme = catppuccinMocha
     var inner: Element
     Container.drawContainerOutlines = true
-    val container = boxContainer {
-        inner = linearContainer(separation = 3.0f) {
-            anchor = Anchor.center
-            makeRectangle(Size(20f, 20f), theme.primary, radius = 5.0f)() {
-                fraction = 1.0f
-            }
-            boxContainer {
-                fraction = 1.0f
-                makeRectangle(Size(20f, 20f), theme.secondary, radius = 5.0f)
-                makeText("This is some text!", color = theme.onSecondary)() {
-                    alignment = Center
-                    anchor = Anchor.Wide.m
+    var container: BoxContainer
+
+    layer {
+        alpha = 0.5f
+        renderEffect = BlurEffect(10.0f, 10.0f, TileMode.Decal)
+        container = boxContainer {
+            inner = linearContainer(separation = 3.0f) {
+                anchor = Anchor.center
+                makeRectangle(Size(20f, 20f), theme.primary, radius = 5.0f)() {
+                    fraction = 1.0f
                 }
-            }
-            makeRectangle(Size(20f, 20f), theme.primaryVariant, radius = 5.0f)() {
-                fraction = 1.0f
+                boxContainer {
+                    fraction = 1.0f
+                    makeRectangle(Size(20f, 20f), theme.secondary, radius = 5.0f)
+                    makeText("This is some text!", color = theme.onSecondary)() {
+                        alignment = Center
+                        anchor = Anchor.Wide.m
+                    }
+                }
+                makeRectangle(Size(20f, 20f), theme.primaryVariant, radius = 5.0f)() {
+                    fraction = 1.0f
+                }
             }
         }
     }
 
     yield(container::size.tween(to = Size(500f, 120f), length = 200, tweener = cubic(Out)))
-    //yield(bug())
+    yield(bug())
 
     yield(
         animation {
@@ -134,9 +149,10 @@ val anim = animation {
 
 @OptIn(InternalComposeUiApi::class)
 fun main() = application {
-    val layer = withCompositionLocal(LocalGraphicsContext provides SkiaGraphicsContext()) {
+    var layerSize by remember { mutableStateOf(IntSize.Zero) }
+    val layer: GraphicsLayer = withCompositionLocal(LocalGraphicsContext provides SkiaGraphicsContext()) {
         val graphicsLayer = rememberGraphicsLayer()
-        graphicsLayer.record(Density(3f), LayoutDirection.Ltr, IntSize(300, 300)) {
+        graphicsLayer.record(Density(3f), LayoutDirection.Ltr, layerSize) {
             anim.runLayoutPass()
             with(anim) { draw() }
         }
@@ -153,7 +169,7 @@ fun main() = application {
                 }
             }
 
-            Box(Modifier.background(MaterialTheme.colors.background).fillMaxSize()) {
+            Box(Modifier.background(MaterialTheme.colors.background).fillMaxSize().onSizeChanged { layerSize = it }) {
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colors.onBackground) {
                     Column {
                         Canvas(modifier = Modifier.fillMaxWidth().weight(1f)) {
