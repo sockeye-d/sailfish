@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.util.lerp
 import dev.fishies.ranim2.containers.Axis.Companion.get
 import dev.fishies.ranim2.containers.LinearContainer.Properties
 import dev.fishies.ranim2.core.CompositeElement
@@ -41,7 +42,7 @@ class LinearContainer(_axis: Axis, _separation: Float) : Container() {
     var axis by mutableStateOf(_axis)
     var separation by mutableStateOf(_separation)
 
-    val crossAxis by derivedStateOf { axis.opposite }
+    private val crossAxis by derivedStateOf { axis.opposite }
 
     override val minimumSize by derivedStateOf {
         if (children.isEmpty()) Size.Zero else constructSize(
@@ -113,15 +114,17 @@ class LinearContainer(_axis: Axis, _separation: Float) : Container() {
                 offset += separation
             }
 
+            val crossAnchor = child.crossAnchor
+            val crossSize = lerp(child.minimumSize[axis.opposite], acrossAxis, crossAnchor.fillFactor)
+            val crossOffset = (acrossAxis - crossSize) * crossAnchor.factor
+
             val rect = Rect(
-                Offset(offset, 0.0f).convertXyMainCross(), Size(childSize.finalSize, acrossAxis).convertXyMainCross()
+                Offset(offset, crossOffset).convertXyMainCross(), Size(childSize.finalSize, crossSize).convertXyMainCross()
             )
 
             child.fitInRect(rect)
             offset += childSize.finalSize
         }
-
-        //size = Size(size.width.coerceAtLeast(minimumSize.width), size.height.coerceAtLeast(minimumSize.height))
     }
 
     @Suppress("NOTHING_TO_INLINE")
@@ -151,10 +154,12 @@ class LinearContainer(_axis: Axis, _separation: Float) : Container() {
 
     class Properties {
         var fraction: Float? by mutableStateOf(null)
+        var crossAnchor: AxisAnchor by mutableStateOf(AxisAnchor.Fill)
     }
 }
 
-var Element.fraction by attached<_, _, LinearContainer>(Properties::fraction, default = { null })
+var Element.fraction by attached<_, _, LinearContainer>(Properties::fraction) { null }
+var Element.crossAnchor by attached<_, _, LinearContainer>(Properties::crossAnchor) { AxisAnchor.Fill }
 
 internal data class ChildSize(
     val minimSize: Float = 0.0f,
@@ -163,7 +168,7 @@ internal data class ChildSize(
     var fraction: Float = 0.0f,
 )
 
-fun CompositeElement.linearContainer(
+fun CompositeElement.linear(
     axis: Axis = Axis.X,
     separation: Float = 0.0f,
     contents: LinearContainer.() -> Unit,

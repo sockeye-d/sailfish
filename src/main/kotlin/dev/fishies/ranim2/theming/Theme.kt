@@ -3,37 +3,31 @@
 package dev.fishies.ranim2.theming
 
 import androidx.compose.material.Colors
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import dev.fishies.ranim2.core.Element
-import dev.fishies.ranim2.core.attached
-import dev.fishies.ranim2.core.fromHtmlColor
-import dev.fishies.ranim2.core.toHtmlColor
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.UseSerializers
+import dev.fishies.ranim2.core.*
+import kotlinx.serialization.*
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.reflect.KProperty1
 
-enum class Background {
-    PRIMARY,
-    PRIMARY_VARIANT,
-    SECONDARY,
-    SECONDARY_VARIANT,
-    BACKGROUND,
-    SURFACE,
-    ERROR,
+enum class ThemeColor(
+    internal val bgColor: KProperty1<Theme, Color>, internal val contentColor: KProperty1<Theme, Color>
+) {
+    Primary(Theme::primary, Theme::onPrimary),
+    PrimaryVariant(Theme::primaryVariant, Theme::onPrimary),
+    Secondary(Theme::secondary, Theme::onSecondary),
+    SecondaryVariant(Theme::secondaryVariant, Theme::onSecondary),
+    Background(Theme::background, Theme::onBackground),
+    Background2(Theme::background2, Theme::onBackground),
+    Surface(Theme::surface, Theme::onSurface),
+    Error(Theme::error, Theme::onError),
 }
 
 @Serializable
@@ -43,6 +37,7 @@ data class Theme(
     val secondary: Color,
     @SerialName("secondary_variant") val secondaryVariant: Color,
     val background: Color,
+    val background2: Color,
     val surface: Color,
     val error: Color,
     @SerialName("on_primary") val onPrimary: Color,
@@ -66,13 +61,10 @@ data class Theme(
         }
     }
 
-    fun contentColorFor(background: Background) = when (background) {
-        Background.PRIMARY, Background.PRIMARY_VARIANT -> onPrimary
-        Background.SECONDARY, Background.SECONDARY_VARIANT -> onSecondary
-        Background.BACKGROUND -> onBackground
-        Background.SURFACE -> onSurface
-        Background.ERROR -> onError
-    }
+    operator fun get(color: ThemeColor) = color.bgColor(this)
+
+    fun backgroundColorFor(contentColor: ThemeColor) = contentColor.bgColor(this)
+    fun contentColorFor(background: ThemeColor) = background.contentColor(this)
 }
 
 @Serializable
@@ -82,13 +74,11 @@ data class SyntaxStyle(
     @SerialName("font_weight") val fontWeight: Int? = null,
 ) {
     fun toSpanStyle() = SpanStyle(
-        color = color,
-        fontStyle = when (fontStyle) {
+        color = color, fontStyle = when (fontStyle) {
             "normal" -> FontStyle.Normal
             "italic", "oblique" -> FontStyle.Italic
             else -> null
-        },
-        fontWeight = fontWeight?.let(::FontWeight)
+        }, fontWeight = fontWeight?.let(::FontWeight)
     )
 }
 
@@ -140,7 +130,8 @@ val defaultTheme = Theme(
     secondary = Color(0xFF53D3FF),
     secondaryVariant = Color(0xFF5278FF),
     background = Color(0xFF0F0F0F),
-    surface = Color(0xFF181818),
+    background2 = Color(0xFF181818),
+    surface = Color(0xFF2F2F2F),
     error = Color(0xFFFF7D68),
     onPrimary = Color(0xFF0F0F0F),
     onSecondary = Color(0xFF0F0F0F),
@@ -158,11 +149,10 @@ internal class ThemeProperties {
 }
 
 internal class BackgroundProperties {
-    var backgroundColor by mutableStateOf(Background.BACKGROUND)
+    var backgroundColor by mutableStateOf(ThemeColor.Background)
 }
 
 var Element.theme by attached<_, _, Element?>(ThemeProperties::theme, recursive = true) { defaultTheme }
 var Element.backgroundColor by attached<_, _, Element?>(
-    BackgroundProperties::backgroundColor,
-    recursive = true
-) { Background.BACKGROUND }
+    BackgroundProperties::backgroundColor, recursive = true
+) { ThemeColor.Background }

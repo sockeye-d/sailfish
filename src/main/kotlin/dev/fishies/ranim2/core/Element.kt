@@ -27,12 +27,20 @@ interface Element {
     )
 
     val stringRepresentation: String
-        get() = "${this::class.simpleName}(${propertyList().entries.joinToString { (name, value) -> "${name}=${value}" }})"
+        get() = buildString {
+            append(this@Element::class.simpleName)
+            val properties = propertyList()
+            if (properties.isNotEmpty()) {
+                append("(")
+                append(propertyList().entries.joinToString { (name, value) -> "${name}=${value}" })
+                append(")")
+            }
+        }
 }
 
 fun Element.treeString(): String = buildString {
     val element = this@treeString
-    append("${element::class.simpleName}($element) ")
+    append("$element ")
     appendBlock {
         for (child in children) {
             appendLine(child.treeString())

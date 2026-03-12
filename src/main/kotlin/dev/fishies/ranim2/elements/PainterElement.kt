@@ -32,7 +32,7 @@ class PainterElement(val painter: Painter, position: Offset, size: Size, rotatio
     }
 }
 
-fun CompositeElement.makePainter(
+fun CompositeElement.painter(
     painter: Painter,
     position: Offset = Offset.Zero,
     size: Size = painter.intrinsicSize,

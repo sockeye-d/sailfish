@@ -36,30 +36,35 @@ class ShapeElement(shape: Shape, position: Offset, size: Size, rotation: Float, 
             drawOutline(shapeOutline, color, style = style)
         }
     }
+
+    override fun propertyList() = super.propertyList() + mapOf(
+        "color" to color.toString(),
+        "shape" to (shape::class.simpleName ?: "shape"),
+    )
 }
 
-fun CompositeElement.makeShape(
+fun CompositeElement.shape(
     shape: Shape,
-    size: Size,
-    color: Color,
+    size: Size = Size.Zero,
+    color: Color = Color.Unspecified,
     style: DrawStyle = Fill,
     position: Offset = Offset.Zero,
     rotation: Float = 0f,
 ) = ShapeElement(shape, position, size, rotation, color, style).also(this::addChild)
 
-fun CompositeElement.makeCircle(
-    size: Size,
-    color: Color,
+fun CompositeElement.circle(
+    size: Size = Size.Zero,
+    color: Color = Color.Unspecified,
     style: DrawStyle = Fill,
     position: Offset = Offset.Zero,
     rotation: Float = 0f,
-) = makeShape(CircleShape, size, color, style, position, rotation)
+) = shape(CircleShape, size, color, style, position, rotation)
 
-fun CompositeElement.makeRectangle(
-    size: Size,
-    color: Color,
+fun CompositeElement.rectangle(
+    size: Size = Size.Zero,
+    color: Color = Color.Unspecified,
     style: DrawStyle = Fill,
     position: Offset = Offset.Zero,
     radius: Float = 0f,
     rotation: Float = 0f,
-) = makeShape(RoundedCornerShape(radius), size, color, style, position, rotation)
+) = shape(RoundedCornerShape(radius), size, color, style, position, rotation)

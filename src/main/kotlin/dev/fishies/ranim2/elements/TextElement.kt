@@ -13,7 +13,6 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import dev.fishies.ranim2.core.CompositeElement
 import dev.fishies.ranim2.theming.backgroundColor
@@ -29,6 +28,7 @@ open class TextElement(
     _fontSize: TextUnit,
     _rotation: Float,
     _color: Color,
+    _wrapText: Boolean,
     _annotator: (text: String) -> List<TextAnnotation>,
 ) : BasicElement(_position) {
     var text by mutableStateOf(_text)
@@ -38,14 +38,18 @@ open class TextElement(
     var rotation by mutableStateOf(_rotation)
     var fontFamily by mutableStateOf(_fontFamily)
     var alignment by mutableStateOf(TextAlign.Left)
+    var wrapText by mutableStateOf(_wrapText)
     val textLayout by derivedStateOf {
         val constraints = Constraints(
             maxWidth = if (size.width.isNaN()) Int.MAX_VALUE else size.width.roundToInt(),
         )
         measurer.measure(
             AnnotatedString(text, annotator(text)),
-            TextStyle(fontSize = this.fontSize, fontFamily = this.fontFamily, textAlign = alignment),
-            //overflow = TextOverflow.Ellipsis,
+            TextStyle(
+                fontSize = this.fontSize,
+                fontFamily = this.fontFamily,
+                textAlign = alignment,
+            ),
             constraints = constraints,
         )
     }
@@ -53,8 +57,12 @@ open class TextElement(
     override var size by mutableStateOf(Size.Unspecified)
     override val minimumSize by derivedStateOf {
         Size(
-            if (size.width.isNaN()) textLayout.size.width.toFloat() else textLayout.multiParagraph.intrinsics.minIntrinsicWidth,
-            textLayout.size.height.toFloat()
+            if (!wrapText || size.width.isNaN()) {
+                textLayout.size.width.toFloat()
+            } else {
+                textLayout.multiParagraph.intrinsics.minIntrinsicWidth
+            },
+            textLayout.size.height.toFloat(),
         )
     }
 
@@ -73,12 +81,13 @@ open class TextElement(
     }
 }
 
-fun CompositeElement.makeText(
+fun CompositeElement.text(
     text: String,
     fontFamily: FontFamily = FontFamily.Default,
     position: Offset = Offset.Zero,
     fontSize: TextUnit = TextUnit(16f, TextUnitType.Sp),
     rotation: Float = 0f,
     color: Color = theme.contentColorFor(backgroundColor),
+    wrap: Boolean = false,
     highlighter: (text: String) -> List<TextAnnotation> = { emptyList() },
-) = TextElement(text, fontFamily, position, fontSize, rotation, color, highlighter).also { addChild(it) }
+) = TextElement(text, fontFamily, position, fontSize, rotation, color, wrap, highlighter).also { addChild(it) }

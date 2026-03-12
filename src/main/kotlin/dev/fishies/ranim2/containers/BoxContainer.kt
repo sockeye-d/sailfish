@@ -1,56 +1,64 @@
 package dev.fishies.ranim2.containers
 
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.util.lerp
-import dev.fishies.ranim2.core.CompositeElement
-import dev.fishies.ranim2.core.Container
-import dev.fishies.ranim2.core.Element
-import dev.fishies.ranim2.core.attached
-import dev.fishies.ranim2.core.minus
-import dev.fishies.ranim2.core.toOffset
-import dev.fishies.ranim2.core.times
-import kotlin.contracts.ExperimentalContracts
+import dev.fishies.ranim2.core.*
+import dev.fishies.ranim2.elements.rectangle
+import dev.fishies.ranim2.theming.*
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-class BoxContainer : Container() {
+class BoxContainer(_padding: Padding = zero) : Container() {
     override val minimumSize by derivedStateOf {
-        if (children.isEmpty()) Size.Zero else Size(
+        (if (children.isEmpty()) Size.Zero else Size(
             layoutableChildren.maxOf { it.minimumSize.width },
             layoutableChildren.maxOf { it.minimumSize.height },
-        )
+        )) + padding.size
     }
 
+    var padding by mutableStateOf(_padding)
+
     override fun layout(childrenToLayout: List<Element>) {
+        val paddedOffset = Offset(
+            padding.left,
+            padding.top,
+        )
+
+        val paddedSize = size - padding.size
+
         for (child in childrenToLayout) {
             val childMinSize = child.minimumSize
             val childAnchor = child.anchor
+            val respectsPadding = child.respectsPadding
+            val thisSize = if (respectsPadding) paddedSize else size
+            val thisOffset = if (respectsPadding) paddedOffset else Offset.Zero
             val targetSize = Size(
-                lerp(childMinSize.width, size.width, childAnchor.x.fillFactor),
-                lerp(childMinSize.height, size.height, childAnchor.y.fillFactor),
+                lerp(childMinSize.width, thisSize.width, childAnchor.x.fillFactor),
+                lerp(childMinSize.height, thisSize.height, childAnchor.y.fillFactor),
             )
-            val targetOffset = (size - targetSize).toOffset() * childAnchor.factor()
+            val targetOffset = thisOffset + (thisSize - targetSize).toOffset() * childAnchor.factor()
             child.fitInRect(targetOffset, targetSize)
         }
     }
 
     class Properties {
         var align by mutableStateOf(Anchor.fill)
+        var respectsPadding by mutableStateOf(true)
     }
 }
 
 var Element.anchor by attached<_, _, BoxContainer>(BoxContainer.Properties::align, default = Anchor::fill)
+var Element.respectsPadding by attached<_, _, BoxContainer>(BoxContainer.Properties::respectsPadding, default = { true })
 
-open class AxisAnchor(val factor: Float, val fillFactor: Float = 0.0f) {
+sealed class AxisAnchor(open val factor: Float, open val fillFactor: Float = 0.0f) {
     data object Start : AxisAnchor(0.0f)
     data object Middle : AxisAnchor(0.5f)
     data object End : AxisAnchor(1.0f)
     data object Fill : AxisAnchor(0.5f, fillFactor = 1.0f)
+    data class Absolute(override val factor: Float, override val fillFactor: Float = 0.0f) : AxisAnchor(factor, fillFactor)
 }
 
 data class Anchor(
@@ -61,6 +69,7 @@ data class Anchor(
         val fill = Anchor(AxisAnchor.Fill, AxisAnchor.Fill)
         val center = Anchor(AxisAnchor.Middle, AxisAnchor.Middle)
     }
+
     object Shrink {
         val tl = Anchor(AxisAnchor.Start, AxisAnchor.Start)
         val tm = Anchor(AxisAnchor.Middle, AxisAnchor.Start)
@@ -72,21 +81,23 @@ data class Anchor(
         val bm = Anchor(AxisAnchor.Middle, AxisAnchor.End)
         val br = Anchor(AxisAnchor.End, AxisAnchor.End)
     }
+
     object Wide {
-        val t = Anchor(AxisAnchor.Fill, AxisAnchor.Start)
-        val m = Anchor(AxisAnchor.Fill, AxisAnchor.Middle)
-        val b = Anchor(AxisAnchor.Fill, AxisAnchor.End)
+        val top = Anchor(AxisAnchor.Fill, AxisAnchor.Start)
+        val middle = Anchor(AxisAnchor.Fill, AxisAnchor.Middle)
+        val bottom = Anchor(AxisAnchor.Fill, AxisAnchor.End)
     }
+
     object Tall {
-        val t = Anchor(AxisAnchor.Start, AxisAnchor.Fill)
-        val m = Anchor(AxisAnchor.Middle, AxisAnchor.Fill)
-        val b = Anchor(AxisAnchor.End, AxisAnchor.Fill)
+        val left = Anchor(AxisAnchor.Start, AxisAnchor.Fill)
+        val middle = Anchor(AxisAnchor.Middle, AxisAnchor.Fill)
+        val right = Anchor(AxisAnchor.End, AxisAnchor.Fill)
     }
 }
 
 fun Anchor.factor() = Offset(x.factor, y.factor)
 
-fun lerp(start: AxisAnchor, stop: AxisAnchor, fraction: Float) = AxisAnchor(
+fun lerp(start: AxisAnchor, stop: AxisAnchor, fraction: Float) = AxisAnchor.Absolute(
     lerp(start.factor, stop.factor, fraction),
     lerp(start.fillFactor, stop.fillFactor, fraction),
 )
@@ -94,12 +105,43 @@ fun lerp(start: AxisAnchor, stop: AxisAnchor, fraction: Float) = AxisAnchor(
 fun lerp(start: Anchor, stop: Anchor, fraction: Float) =
     Anchor(lerp(start.x, stop.x, fraction), lerp(start.y, stop.y, fraction))
 
-@OptIn(ExperimentalContracts::class)
-fun CompositeElement.boxContainer(
+fun CompositeElement.box(
+    padding: Padding = zero,
     contents: BoxContainer.() -> Unit,
 ): BoxContainer {
     contract {
         callsInPlace(contents, InvocationKind.EXACTLY_ONCE)
     }
-    return BoxContainer().also(::addChild).apply(contents)
+    return BoxContainer(padding).also(::addChild).apply(contents)
+}
+
+fun CompositeElement.panel(
+    bgColor: ThemeColor = Background2, radius: Float = 0.0f, padding: Padding = zero, contents: BoxContainer.() -> Unit
+): BoxContainer {
+    contract {
+        callsInPlace(contents, InvocationKind.EXACTLY_ONCE)
+    }
+    return box {
+        backgroundColor = bgColor
+        rectangle(Size.Zero, theme[bgColor], radius = radius)() {
+            anchor = fill
+            respectsPadding = false
+        }
+        contents()
+    }
+}
+
+fun CompositeElement.panel(
+    bgColor: Color, radius: Float = 0.0f, padding: Padding = zero, contents: BoxContainer.() -> Unit
+): BoxContainer {
+    contract {
+        callsInPlace(contents, InvocationKind.EXACTLY_ONCE)
+    }
+    return box {
+        rectangle(Size.Zero, bgColor, radius = radius)() {
+            anchor = fill
+            respectsPadding = false
+        }
+        contents()
+    }
 }

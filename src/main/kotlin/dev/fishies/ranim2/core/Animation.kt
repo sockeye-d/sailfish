@@ -18,6 +18,8 @@ class Animation : CompositeElement(), Animated {
      * Waits for one frame.
      */
     suspend fun yield() = suspendCancellableCoroutine { continuation = it }
+
+    override fun propertyList() = emptyMap<String, String>()
 }
 
 /**
