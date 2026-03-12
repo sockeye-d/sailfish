@@ -1,12 +1,15 @@
 package dev.fishies.ranim2.core
 
+import androidx.annotation.FloatRange
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.colorspace.ColorSpace
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.util.fastCoerceIn
+import androidx.compose.ui.util.lerp
 import dev.fishies.ranim2.languages.common.TreeSitterLanguage
 import dev.fishies.ranim2.syntax.highlightToAnnotations
 import dev.fishies.ranim2.theming.theme
@@ -102,3 +105,33 @@ inline fun StringBuilder.appendBlock(
 }
 
 inline fun <reified T> stepLerp(from: T, to: T, factor: Float) = if (factor < 0.5f) from else to
+
+fun lerp(start: Color, stop: Color, @FloatRange(from = 0.0, to = 1.0) fraction: Float, colorSpace: ColorSpace = ColorSpaces.LinearSrgb): Color {
+    val startColor = start.convert(colorSpace)
+    val endColor = stop.convert(colorSpace)
+
+    val startAlpha = startColor.alpha
+    val startL = startColor.red
+    val startA = startColor.green
+    val startB = startColor.blue
+
+    val endAlpha = endColor.alpha
+    val endL = endColor.red
+    val endA = endColor.green
+    val endB = endColor.blue
+
+    // We need to clamp the input fraction since over/undershoot easing curves
+    // can yield fractions outside of the 0..1 range, which would in turn cause
+    // Lab/alpha values to be outside of the valid color range.
+    // Clamping the fraction is cheaper than clamping all 4 components separately.
+    val t = fraction.fastCoerceIn(0.0f, 1.0f)
+    val interpolated =
+        Color(
+            lerp(startL, endL, t),
+            lerp(startA, endA, t),
+            lerp(startB, endB, t),
+            lerp(startAlpha, endAlpha, t),
+            colorSpace,
+        )
+    return interpolated.convert(stop.colorSpace)
+}

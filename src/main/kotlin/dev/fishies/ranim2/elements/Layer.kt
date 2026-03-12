@@ -18,6 +18,7 @@ import org.jetbrains.skia.ImageFilter
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.reflect.KMutableProperty
+import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
@@ -73,7 +74,7 @@ fun CompositeElement.layer(
     return Layer(graphicsContext, position, size).also { addChild(it) }.apply(contents)
 }
 
-fun KMutableProperty<RenderEffect?>.tween(
+fun KMutableProperty0<RenderEffect?>.tween(
     from: RenderEffect? = null,
     to: RenderEffect? = null,
     length: Frames,

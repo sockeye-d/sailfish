@@ -3,13 +3,15 @@ package dev.fishies.ranim2.core
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.reflect.KMutableProperty
 
+private object NoValue
+
 fun <T> KMutableProperty<T>.bind(calculation: () -> T) {
     val readSet = mutableSetOf<Any>()
     val readObserver: (Any) -> Unit = {
         readSet.add(it)
     }
 
-    var lastValue = getter.call()
+    var lastValue: Any? = NoValue
     var disposeObserver: (() -> Unit)? = null
 
     fun takeSnapshot() {
@@ -21,7 +23,7 @@ fun <T> KMutableProperty<T>.bind(calculation: () -> T) {
                 dispose()
             }
         }
-        if (value != lastValue) {
+        if (value != lastValue || lastValue == NoValue) {
             lastValue = value
             setter.call(value)
         }

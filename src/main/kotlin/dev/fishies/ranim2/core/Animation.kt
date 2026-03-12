@@ -9,9 +9,11 @@ import kotlin.coroutines.resume
 class Animation : CompositeElement(), Animated {
     internal lateinit var continuation: Continuation<Unit>
     override var isFinished = false
+    var ticks = 0
 
     override fun tick() {
         continuation.resume(Unit)
+        ticks++
     }
 
     /**

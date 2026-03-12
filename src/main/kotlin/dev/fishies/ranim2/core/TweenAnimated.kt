@@ -6,6 +6,8 @@ import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.colorspace.ColorSpace
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
@@ -15,12 +17,12 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import dev.fishies.ranim2.containers.Anchor
 import dev.fishies.ranim2.containers.lerp
-import kotlin.reflect.KMutableProperty
+import kotlin.reflect.KMutableProperty0
 
 typealias Frames = Int
 
 class TweenAnimated<T>(
-    private val property: KMutableProperty<T>,
+    private val property: KMutableProperty0<T>,
     private val from: T,
     private val to: T,
     private val length: Frames,
@@ -42,7 +44,7 @@ class TweenAnimated<T>(
     override fun toString() = "TweenAnimation($property from $from to $to in $length frames)"
 }
 
-fun <T : Any> KMutableProperty<T>.tween(
+fun <T : Any> KMutableProperty0<T>.tween(
     from: T? = null,
     to: T,
     length: Frames,
@@ -52,7 +54,7 @@ fun <T : Any> KMutableProperty<T>.tween(
     property = this, from = from ?: this.getter.call(), to = to, length = length, animator = animator, tweener = tweener
 )
 
-fun KMutableProperty<Float>.tween(
+fun KMutableProperty0<Float>.tween(
     from: Float? = null,
     to: Float,
     length: Frames,
@@ -70,7 +72,7 @@ fun KMutableProperty<Float>.tween(
  * Please don't use on null properties, or provide a [from].
  */
 @JvmName("tweenFloatNull")
-fun KMutableProperty<Float?>.tween(
+fun KMutableProperty0<Float?>.tween(
     from: Float? = null,
     to: Float,
     length: Frames,
@@ -84,7 +86,7 @@ fun KMutableProperty<Float?>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<Double>.tween(
+fun KMutableProperty0<Double>.tween(
     from: Double? = null,
     to: Double,
     length: Frames,
@@ -98,7 +100,7 @@ fun KMutableProperty<Double>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<Dp>.tween(
+fun KMutableProperty0<Dp>.tween(
     from: Dp = Dp.Unspecified,
     to: Dp,
     length: Frames,
@@ -112,7 +114,7 @@ fun KMutableProperty<Dp>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<DpOffset>.tween(
+fun KMutableProperty0<DpOffset>.tween(
     from: DpOffset = DpOffset.Unspecified,
     to: DpOffset,
     length: Frames,
@@ -126,7 +128,7 @@ fun KMutableProperty<DpOffset>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<Offset>.tween(
+fun KMutableProperty0<Offset>.tween(
     from: Offset = Offset.Unspecified,
     to: Offset,
     length: Frames,
@@ -140,21 +142,22 @@ fun KMutableProperty<Offset>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<Color>.tween(
+fun KMutableProperty0<Color>.tween(
     from: Color = Color.Unspecified,
     to: Color,
     length: Frames,
+    colorSpace: ColorSpace = ColorSpaces.LinearSrgb,
     tweener: (Double) -> Double = { it },
 ) = TweenAnimated(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
     to = to,
     length = length,
-    animator = { from, to, factor -> lerp(from, to, factor.toFloat()) },
+    animator = { from, to, factor -> lerp(from, to, factor.toFloat(), colorSpace) },
     tweener = tweener
 )
 
-fun KMutableProperty<Size>.tween(
+fun KMutableProperty0<Size>.tween(
     from: Size = Size.Unspecified,
     to: Size,
     length: Frames,
@@ -168,7 +171,7 @@ fun KMutableProperty<Size>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<Anchor>.tween(
+fun KMutableProperty0<Anchor>.tween(
     from: Anchor? = null,
     to: Anchor,
     length: Frames,
@@ -182,7 +185,7 @@ fun KMutableProperty<Anchor>.tween(
     tweener = tweener
 )
 
-fun KMutableProperty<Matrix>.tween(
+fun KMutableProperty0<Matrix>.tween(
     from: Matrix? = null,
     to: Matrix,
     length: Frames,

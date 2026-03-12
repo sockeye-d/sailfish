@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isSpecified
 import dev.fishies.ranim2.core.Element
+import dev.fishies.ranim2.core.coerceAtLeast
 import kotlin.reflect.KClass
 
 abstract class BasicElement(position: Offset, size: Size = Size.Unspecified) : Element {
@@ -20,7 +22,10 @@ abstract class BasicElement(position: Offset, size: Size = Size.Unspecified) : E
     override var size by mutableStateOf(size)
     override var visible by mutableStateOf(true)
 
-    override val minimumSize = size
+    private val initialSize = size
+    override val minimumSize by derivedStateOf { if (customMinimumSize.isSpecified) customMinimumSize else initialSize }
 
     override fun toString() = stringRepresentation
+
+    var customMinimumSize by mutableStateOf(Size.Unspecified)
 }
