@@ -17,6 +17,7 @@ pluginManagement {
         id("io.github.tree-sitter.ktreesitter-plugin") version "0.24.1"
         id("com.android.library") version "8.13.2"
         id("org.jetbrains.kotlin.jvm") version "2.3.0"
+        id("org.jetbrains.kotlin.multiplatform") version "2.3.0"
     }
 }
 
@@ -40,6 +41,7 @@ plugins {
 rootProject.name = "ranim2"
 
 includeBuild("build-logic")
+include(":core")
 include(":languages:common")
 include(":languages:kotlin")
 include(":languages:odin")

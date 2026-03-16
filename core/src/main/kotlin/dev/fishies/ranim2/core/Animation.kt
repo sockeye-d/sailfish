@@ -1,10 +1,7 @@
 package dev.fishies.ranim2.core
 
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.coroutines.createCoroutine
-import kotlin.coroutines.resume
+import kotlin.coroutines.*
 
 class Animation : CompositeElement(), Animated {
     internal lateinit var continuation: Continuation<Unit>

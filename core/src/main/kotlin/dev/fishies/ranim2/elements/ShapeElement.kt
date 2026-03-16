@@ -2,20 +2,13 @@ package dev.fishies.ranim2.elements
 
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import dev.fishies.ranim2.core.CompositeElement
 
 class ShapeElement(shape: Shape, position: Offset, size: Size, rotation: Float, color: Color, style: DrawStyle) :

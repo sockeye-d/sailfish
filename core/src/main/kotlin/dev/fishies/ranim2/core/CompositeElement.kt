@@ -1,20 +1,14 @@
 package dev.fishies.ranim2.core
 
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KProperty
+import kotlin.reflect.*
 import kotlin.reflect.full.createInstance
-import kotlin.to
 
 open class CompositeElement(_position: Offset = Offset.Zero, _size: Size = Size.Unspecified) : Element {
     override var attachedProperties by mutableStateOf(emptyMap<KClass<*>, Any?>())

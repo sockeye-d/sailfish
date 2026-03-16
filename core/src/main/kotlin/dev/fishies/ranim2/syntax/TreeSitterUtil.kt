@@ -4,10 +4,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import dev.fishies.ranim2.languages.common.TreeSitterLanguage
 import dev.fishies.ranim2.theming.SyntaxHighlighterTheme
-import io.github.treesitter.ktreesitter.Language
-import io.github.treesitter.ktreesitter.Parser
-import io.github.treesitter.ktreesitter.Query
-import io.github.treesitter.ktreesitter.QueryMatch
+import io.github.treesitter.ktreesitter.*
 import java.util.concurrent.ConcurrentHashMap
 
 private val languageCache = ConcurrentHashMap<String, Language>()

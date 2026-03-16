@@ -20,6 +20,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/build-logic" />
+            <option value="$PROJECT_DIR$/core" />
             <option value="$PROJECT_DIR$/languages" />
             <option value="$PROJECT_DIR$/languages/common" />
             <option value="$PROJECT_DIR$/languages/kotlin" />
