@@ -3,7 +3,6 @@ import io.github.treesitter.ktreesitter.plugin.GrammarFilesTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Exec
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.invoke

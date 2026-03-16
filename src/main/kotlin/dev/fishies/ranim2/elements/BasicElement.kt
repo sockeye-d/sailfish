@@ -8,7 +8,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isSpecified
 import dev.fishies.ranim2.core.Element
-import dev.fishies.ranim2.core.coerceAtLeast
 import kotlin.reflect.KClass
 
 abstract class BasicElement(position: Offset, size: Size = Size.Unspecified) : Element {

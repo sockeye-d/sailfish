@@ -17,7 +17,6 @@ import dev.fishies.ranim2.core.*
 import org.jetbrains.skia.ImageFilter
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
