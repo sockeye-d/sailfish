@@ -1,10 +1,15 @@
 package dev.fishies.ranim2.core
 
+import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.reflect.KMutableProperty
 
 private object NoValue
 
+/**
+ * Binds `this` to the result [calculation]. Whenever any of [calculation]'s dependent variables change, the value will
+ * be recomputed and assigned to `this`.
+ */
 fun <T> KMutableProperty<T>.bind(calculation: () -> T) {
     val readSet = mutableSetOf<Any>()
     val readObserver: (Any) -> Unit = {
@@ -12,7 +17,6 @@ fun <T> KMutableProperty<T>.bind(calculation: () -> T) {
     }
 
     var lastValue: Any? = NoValue
-    var disposeObserver: (() -> Unit)? = null
 
     fun takeSnapshot() {
         readSet.clear()
@@ -34,9 +38,25 @@ fun <T> KMutableProperty<T>.bind(calculation: () -> T) {
             takeSnapshot()
         }
     }
-
-    disposeObserver = observer::dispose
-    // TODO: figure out when to actually call `disposeObserver?.invoke()`
+    BindingManager.disposeAndRegister(this, observer)
 
     takeSnapshot()
+}
+
+/**
+ * Unbinds `this` from any bound computations. Doesn't do anything if no computation is already bound `this`.
+ */
+fun <T> KMutableProperty<T>.unbind() = BindingManager.dispose(this)
+
+private object BindingManager {
+    private val bindings = mutableMapOf<KMutableProperty<*>, ObserverHandle>()
+
+    fun disposeAndRegister(property: KMutableProperty<*>, observer: ObserverHandle) {
+        dispose(property)
+        bindings[property] = observer
+    }
+
+    fun dispose(property: KMutableProperty<*>) {
+        bindings.remove(property)?.dispose()
+    }
 }
