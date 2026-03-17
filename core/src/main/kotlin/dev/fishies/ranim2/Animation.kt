@@ -1,4 +1,4 @@
-package dev.fishies.ranim2.core
+package dev.fishies.ranim2
 
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.*
@@ -54,8 +54,8 @@ fun animation(block: suspend Animation.() -> Unit) = Animation().apply {
         receiver = this,
         completion = Continuation(EmptyCoroutineContext) { result ->
             if (result.isFailure) {
-                println("Animation cancelled with exception: $result")
-                println("Backtrace: ${result.exceptionOrNull()?.stackTraceToString()}")
+                // Propagate exception past suspend barriers.
+                throw result.exceptionOrNull()!!
             }
             isFinished = true
         },

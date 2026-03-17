@@ -1,22 +1,18 @@
-package dev.fishies.ranim2.core
+package dev.fishies.ranim2.util
 
-import androidx.annotation.FloatRange
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.colorspace.ColorSpace
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.lerp
+import dev.fishies.ranim2.Element
 import dev.fishies.ranim2.languages.common.TreeSitterLanguage
 import dev.fishies.ranim2.syntax.highlightToAnnotations
 import dev.fishies.ranim2.theming.theme
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.resources.decodeToImageBitmap
-import org.jetbrains.compose.resources.decodeToSvgPainter
-import java.net.URI
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -57,18 +53,6 @@ fun String.fromHtmlColor(): Color {
     return Color(red, green, blue, alpha)
 }
 
-private val loaderClass = object {}::class.java
-
-fun loadBytes(resourceUri: String): ByteArray = URI.create(resourceUri).toURL().readBytes()
-
-fun loadSvg(resourceUri: String) = loadBytes(resourceUri).decodeToSvgPainter(Density(1.0f))
-
-fun loadImage(resourceUri: String, filterQuality: FilterQuality = FilterQuality.Low) = BitmapPainter(
-    loadBytes(resourceUri).decodeToImageBitmap(), filterQuality = filterQuality
-)
-
-fun loadJsonElement(resourceUri: String) = Json.parseToJsonElement(loadBytes(resourceUri).decodeToString())
-
 inline fun <reified T> loadJson(resourceUri: String) = Json.decodeFromString<T>(loadBytes(resourceUri).decodeToString())
 
 @Suppress("NOTHING_TO_INLINE")
@@ -106,7 +90,7 @@ inline fun StringBuilder.appendBlock(
 
 inline fun <reified T> stepLerp(from: T, to: T, factor: Float) = if (factor < 0.5f) from else to
 
-fun lerp(start: Color, stop: Color, @FloatRange(from = 0.0, to = 1.0) fraction: Float, colorSpace: ColorSpace = ColorSpaces.LinearSrgb): Color {
+fun lerp(start: Color, stop: Color, fraction: Float, colorSpace: ColorSpace = ColorSpaces.LinearSrgb): Color {
     val startColor = start.convert(colorSpace)
     val endColor = stop.convert(colorSpace)
 

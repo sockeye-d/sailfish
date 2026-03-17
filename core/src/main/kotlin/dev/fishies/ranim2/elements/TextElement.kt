@@ -11,7 +11,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
-import dev.fishies.ranim2.core.CompositeElement
+import dev.fishies.ranim2.CompositeElement
 import dev.fishies.ranim2.theming.backgroundColor
 import dev.fishies.ranim2.theming.theme
 import kotlin.math.roundToInt

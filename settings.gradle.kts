@@ -42,6 +42,8 @@ rootProject.name = "ranim2"
 
 includeBuild("build-logic")
 include(":core")
-include(":languages:common")
-include(":languages:kotlin")
-include(":languages:odin")
+include(":gui")
+
+for (project in rootDir.resolve("languages").list()) {
+    include(":languages:$project")
+}

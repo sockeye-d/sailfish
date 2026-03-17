@@ -8,7 +8,13 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.util.lerp
+import dev.fishies.ranim2.CompositeElement
+import dev.fishies.ranim2.Element
+import dev.fishies.ranim2.Frames
+import dev.fishies.ranim2.Tween
+import dev.fishies.ranim2.attached
 import dev.fishies.ranim2.core.*
+import dev.fishies.ranim2.util.stepLerp
 import org.jetbrains.skia.ImageFilter
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -73,7 +79,7 @@ fun KMutableProperty0<RenderEffect?>.tween(
     to: RenderEffect? = null,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this, from = from ?: this.getter.call(), to = to, length = length, animator = { from, to, factor ->
         lerpRenderEffect(from, to, factor.toFloat())
     }, tweener = tweener

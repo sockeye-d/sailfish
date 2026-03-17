@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
-import dev.fishies.ranim2.core.CompositeElement
+import dev.fishies.ranim2.CompositeElement
 
 class ShapeElement(shape: Shape, position: Offset, size: Size, rotation: Float, color: Color, style: DrawStyle) :
     BasicElement(position, size) {

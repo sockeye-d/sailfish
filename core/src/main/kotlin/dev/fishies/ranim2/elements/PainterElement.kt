@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.painter.Painter
-import dev.fishies.ranim2.core.CompositeElement
+import dev.fishies.ranim2.CompositeElement
 
 class PainterElement(val painter: Painter, position: Offset, size: Size, rotation: Float, tint: Color?) :
     BasicElement(position, size) {

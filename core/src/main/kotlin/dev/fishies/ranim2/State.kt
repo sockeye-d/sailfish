@@ -1,4 +1,4 @@
-package dev.fishies.ranim2.core
+package dev.fishies.ranim2
 
 import androidx.compose.runtime.snapshots.ObserverHandle
 import androidx.compose.runtime.snapshots.Snapshot

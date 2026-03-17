@@ -1,8 +1,9 @@
-package dev.fishies.ranim2.core
+package dev.fishies.ranim2
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import dev.fishies.ranim2.util.appendBlock
 import kotlin.reflect.KClass
 
 interface Element {

@@ -12,7 +12,8 @@ group = "dev.fishies.ranim2"
 version = "1.0.0"
 
 dependencies {
-    implementation(compose.desktop.currentOs)
+    implementation(compose.foundation)
+    implementation(compose.runtime)
     implementation(libs.compose.resources)
     implementation(libs.material.icons)
     implementation(libs.kotlin.reflect)

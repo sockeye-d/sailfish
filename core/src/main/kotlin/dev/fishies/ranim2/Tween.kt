@@ -1,4 +1,4 @@
-package dev.fishies.ranim2.core
+package dev.fishies.ranim2
 
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
@@ -12,7 +12,7 @@ import kotlin.reflect.KMutableProperty0
 
 typealias Frames = Int
 
-class TweenAnimated<T>(
+class Tween<T>(
     private val property: KMutableProperty0<T>,
     private val from: T,
     private val to: T,
@@ -41,7 +41,7 @@ fun <T : Any> KMutableProperty0<T>.tween(
     length: Frames,
     animator: (from: T, to: T, factor: Double) -> T,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this, from = from ?: this.getter.call(), to = to, length = length, animator = animator, tweener = tweener
 )
 
@@ -50,7 +50,7 @@ fun KMutableProperty0<Float>.tween(
     to: Float,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = from ?: this.getter.call(),
     to = to,
@@ -68,7 +68,7 @@ fun KMutableProperty0<Float?>.tween(
     to: Float,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = from ?: this.getter.call()!!,
     to = to,
@@ -82,7 +82,7 @@ fun KMutableProperty0<Double>.tween(
     to: Double,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = from ?: this.getter.call(),
     to = to,
@@ -96,7 +96,7 @@ fun KMutableProperty0<Dp>.tween(
     to: Dp,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
     to = to,
@@ -110,7 +110,7 @@ fun KMutableProperty0<DpOffset>.tween(
     to: DpOffset,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
     to = to,
@@ -124,7 +124,7 @@ fun KMutableProperty0<Offset>.tween(
     to: Offset,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
     to = to,
@@ -139,12 +139,12 @@ fun KMutableProperty0<Color>.tween(
     length: Frames,
     colorSpace: ColorSpace = ColorSpaces.LinearSrgb,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
     to = to,
     length = length,
-    animator = { from, to, factor -> lerp(from, to, factor.toFloat(), colorSpace) },
+    animator = { from, to, factor -> dev.fishies.ranim2.util.lerp(from, to, factor.toFloat(), colorSpace) },
     tweener = tweener
 )
 
@@ -153,7 +153,7 @@ fun KMutableProperty0<Size>.tween(
     to: Size,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = if (from.isSpecified) from else this.getter.call(),
     to = to,
@@ -167,7 +167,7 @@ fun KMutableProperty0<Anchor>.tween(
     to: Anchor,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this,
     from = from ?: this.getter.call(),
     to = to,
@@ -181,7 +181,7 @@ fun KMutableProperty0<Matrix>.tween(
     to: Matrix,
     length: Frames,
     tweener: (Double) -> Double = { it },
-) = TweenAnimated(
+) = Tween(
     property = this, from = from ?: this.getter.call(), to = to, length = length, animator = { from, to, factor ->
         Matrix(from.values.zip(to.values).map { (a, b) -> lerp(a, b, factor.toFloat()) }.toFloatArray())
     }, tweener = tweener

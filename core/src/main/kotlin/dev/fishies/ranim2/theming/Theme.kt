@@ -2,13 +2,16 @@
 
 package dev.fishies.ranim2.theming
 
-import androidx.compose.material.Colors
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import dev.fishies.ranim2.Element
+import dev.fishies.ranim2.attached
 import dev.fishies.ranim2.core.*
+import dev.fishies.ranim2.util.fromHtmlColor
+import dev.fishies.ranim2.util.toHtmlColor
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -107,22 +110,6 @@ data class SyntaxHighlighterTheme(
         override fun deserialize(decoder: Decoder) = SyntaxHighlighterTheme(syntax = delegate.deserialize(decoder))
     }
 }
-
-fun Theme.toComposeColors() = Colors(
-    primary = primary,
-    primaryVariant = primaryVariant,
-    secondary = secondary,
-    secondaryVariant = secondaryVariant,
-    background = background,
-    surface = surface,
-    error = error,
-    onPrimary = onPrimary,
-    onSecondary = onSecondary,
-    onBackground = onBackground,
-    onSurface = onSurface,
-    onError = onError,
-    isLight = isLight
-)
 
 val defaultTheme = Theme(
     primary = Color(0xFFFFFF86),

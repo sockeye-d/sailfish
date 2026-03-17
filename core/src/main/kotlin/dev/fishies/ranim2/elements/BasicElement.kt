@@ -2,7 +2,7 @@ package dev.fishies.ranim2.elements
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.*
-import dev.fishies.ranim2.core.Element
+import dev.fishies.ranim2.Element
 import kotlin.reflect.KClass
 
 abstract class BasicElement(position: Offset, size: Size = Size.Unspecified) : Element {

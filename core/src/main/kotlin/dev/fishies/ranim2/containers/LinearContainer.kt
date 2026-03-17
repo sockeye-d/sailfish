@@ -3,6 +3,10 @@ package dev.fishies.ranim2.containers
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.util.lerp
+import dev.fishies.ranim2.CompositeElement
+import dev.fishies.ranim2.Container
+import dev.fishies.ranim2.Element
+import dev.fishies.ranim2.attached
 import dev.fishies.ranim2.containers.Axis.Companion.get
 import dev.fishies.ranim2.containers.LinearContainer.Properties
 import dev.fishies.ranim2.core.*

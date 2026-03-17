@@ -1,9 +1,10 @@
-package dev.fishies.ranim2.core
+package dev.fishies.ranim2
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.*
+import dev.fishies.ranim2.util.coerceAtLeast
 
 abstract class Container : CompositeElement() {
     private var _size by mutableStateOf(Size.Zero)

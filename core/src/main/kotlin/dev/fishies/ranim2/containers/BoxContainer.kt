@@ -5,9 +5,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.util.lerp
+import dev.fishies.ranim2.CompositeElement
+import dev.fishies.ranim2.Container
+import dev.fishies.ranim2.Element
+import dev.fishies.ranim2.Padding
+import dev.fishies.ranim2.attached
 import dev.fishies.ranim2.core.*
 import dev.fishies.ranim2.elements.rectangle
 import dev.fishies.ranim2.theming.*
+import dev.fishies.ranim2.util.*
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -51,7 +57,9 @@ class BoxContainer(_padding: Padding = zero) : Container() {
 }
 
 var Element.anchor by attached<_, _, BoxContainer>(BoxContainer.Properties::align, default = Anchor::fill)
-var Element.respectsPadding by attached<_, _, BoxContainer>(BoxContainer.Properties::respectsPadding, default = { true })
+var Element.respectsPadding by attached<_, _, BoxContainer>(
+    BoxContainer.Properties::respectsPadding,
+    default = { true })
 
 sealed class AxisAnchor(open val factor: Float, open val fillFactor: Float = 0.0f) {
     data object Start : AxisAnchor(0.0f)
