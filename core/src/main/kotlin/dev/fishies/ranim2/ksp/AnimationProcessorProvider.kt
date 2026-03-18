@@ -1,7 +1,9 @@
 package dev.fishies.ranim2.ksp
 
+import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.processing.*
-import com.google.devtools.ksp.symbol.*
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -9,7 +11,14 @@ import java.io.File
 @Serializable
 data class AnimationMetadata(
     val jarFileOutputPath: String,
-    val animations: List<String>,
+    val animations: List<AnimationSymbol>,
+)
+
+@Serializable
+data class AnimationSymbol(
+    val ownerClassName: String,
+    val fnName: String,
+    val signature: String,
 )
 
 class AnimationProcessorProvider : SymbolProcessorProvider {
@@ -21,15 +30,22 @@ class AnimationProviderProcessor(private val environment: SymbolProcessorEnviron
         prettyPrint = true
     }
 
+    @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val jsonFile = File(environment.options["jsonFile"] as String)
+        val jsonFile = File(environment.options["jsonFile"] ?: error("JSON file path required"))
         val annotated = resolver.getSymbolsWithAnnotation("dev.fishies.ranim2.AnimationProvider")
             .filterIsInstance<KSFunctionDeclaration>()
-        val animations = annotated.mapNotNull { it.qualifiedName }.map(KSName::asString)
+        val animations = annotated.map {
+            AnimationSymbol(
+                ownerClassName = resolver.getOwnerJvmClassName(it)!!,
+                fnName = resolver.getJvmName(it)!!,
+                signature = resolver.mapToJvmSignature(it)!!,
+            )
+        }
         jsonFile.writeText(
             json.encodeToString(
                 AnimationMetadata(
-                    jarFileOutputPath = "",
+                    jarFileOutputPath = environment.options["jarFile"] ?: error("JAR filepath required"),
                     animations = animations.toList(),
                 )
             )

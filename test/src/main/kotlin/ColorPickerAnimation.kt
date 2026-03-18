@@ -1,3 +1,4 @@
+package animations.colorPicker
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset

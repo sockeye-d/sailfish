@@ -4,6 +4,7 @@ import com.google.devtools.ksp.gradle.KspAATask
 import com.google.devtools.ksp.gradle.KspExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.*
 
 const val composeVersion = "1.10.0"
@@ -22,9 +23,11 @@ private fun Project.applyAnimationProviderPlugin() {
     plugins.apply("com.google.devtools.ksp")
 
     val jsonFile = projectDir.resolve("metadata.json")
+    val jarFilePath = tasks.withType<Jar>().first().outputs.files.singleFile
 
     extensions.configure<KspExtension> {
         arg("jsonFile", jsonFile.absolutePath)
+        arg("jarFile", jarFilePath.absolutePath)
     }
 
     dependencies {
