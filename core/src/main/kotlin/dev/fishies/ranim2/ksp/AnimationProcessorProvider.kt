@@ -26,7 +26,7 @@ class AnimationProcessorProvider : SymbolProcessorProvider {
 }
 
 class AnimationProviderProcessor(private val environment: SymbolProcessorEnvironment) : SymbolProcessor {
-    val json = Json {
+    private val json = Json {
         prettyPrint = true
     }
 

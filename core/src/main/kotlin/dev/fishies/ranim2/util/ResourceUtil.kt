@@ -6,11 +6,14 @@ import androidx.compose.ui.unit.Density
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.decodeToSvgPainter
-import java.net.URI
 
 private val loaderClass = object {}::class.java
 
-fun loadBytes(resourceUri: String): ByteArray = URI.create(resourceUri).toURL().readBytes()
+fun loadBytes(resourceUri: String): ByteArray {
+    val loader = Thread.currentThread().contextClassLoader ?: error("Context class loader not set")
+    val stream = loader.getResourceAsStream(resourceUri) ?: error("Resource at $resourceUri not found")
+    return stream.readBytes()
+}
 
 fun loadSvg(resourceUri: String) = loadBytes(resourceUri).decodeToSvgPainter(Density(1.0f))
 

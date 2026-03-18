@@ -15,10 +15,10 @@ import dev.fishies.ranim2.theming.theme
 import dev.fishies.ranim2.tweener.InOut
 import dev.fishies.ranim2.tweener.quadratic
 import dev.fishies.ranim2.util.loadJson
-import test.generated.resources.Res
 import kotlin.reflect.KProperty1
 
-val catppuccinMocha = loadJson<Theme>(Res.getUri("files/catppuccin-mocha.json"))
+// val catppuccinMocha2 = loadJson<Theme>(Res.getUri("files/catppuccin-mocha.json"))
+val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json")
 
 class ColorPickerState {
     var color by mutableStateOf(Color.Red)

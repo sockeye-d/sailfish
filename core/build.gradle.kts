@@ -1,5 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-
 plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.compose)
@@ -30,19 +28,5 @@ kotlin {
         optIn.add("kotlin.contracts.ExperimentalContracts")
         freeCompilerArgs.add("-Xcontext-parameters")
         freeCompilerArgs.add("-Xcontext-sensitive-resolution")
-    }
-}
-
-compose.resources {}
-
-compose.desktop {
-    application {
-        mainClass = "dev.fishies.ranim2.MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.AppImage)
-            packageName = group.toString()
-            packageVersion = version.toString()
-        }
     }
 }

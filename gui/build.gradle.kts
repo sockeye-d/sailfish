@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.compose.resources)
     implementation(libs.material.icons)
     implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.serialization.json)
 
     compileOnly(projects.core)
 }
