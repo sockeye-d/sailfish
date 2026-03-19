@@ -12,7 +12,6 @@ import dev.fishies.ranim2.Element
 import dev.fishies.ranim2.languages.common.TreeSitterLanguage
 import dev.fishies.ranim2.syntax.highlightToAnnotations
 import dev.fishies.ranim2.theming.theme
-import kotlinx.serialization.json.Json
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -52,8 +51,6 @@ fun String.fromHtmlColor(): Color {
     val alpha = if (hasAlpha) string.substring(componentLength * 2, componentLength).toInt(16) / maxValue else 1.0f
     return Color(red, green, blue, alpha)
 }
-
-inline fun <reified T> loadJson(resourceUri: String) = Json.decodeFromString<T>(loadBytes(resourceUri).decodeToString())
 
 @Suppress("NOTHING_TO_INLINE")
 inline operator fun Size.minus(other: Size) = Size(width - other.width, height - other.height)

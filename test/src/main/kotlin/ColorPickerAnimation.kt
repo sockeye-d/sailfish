@@ -16,7 +16,9 @@ import dev.fishies.ranim2.tweener.*
 import dev.fishies.ranim2.util.loadJson
 import kotlin.reflect.KProperty1
 
-val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json")
+private val loader = object{}::class.java.classLoader
+
+val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json", loader)
 
 class ColorPickerState {
     var color by mutableStateOf(Color.Red)
@@ -93,9 +95,18 @@ fun colorPickerAnimation() = animation {
 
 @AnimationProvider
 fun showHi() = animation {
-    val hi = text("This is some text!", position = Offset(50f, 50f))
+    val hi = text("This is some other text!", position = Offset(50f, 50f))
     while (true) {
         yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
         yield(hi::position.tween(to = Offset(50f, 50f), length = 100, tweener = cubic(InOut)))
     }
 }
+
+// @AnimationProvider
+// fun showHi2() = animation {
+//     val hi = text("This is some other text!", position = Offset(50f, 50f))
+//     while (true) {
+//         yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
+//         yield(hi::position.tween(to = Offset(50f, 50f), length = 100, tweener = cubic(InOut)))
+//     }
+// }

@@ -12,6 +12,7 @@ import dev.fishies.ranim2.Animation
 import dev.fishies.ranim2.ksp.AnimationMetadata
 import dev.fishies.ranim2.theming.LocalTheme
 import dev.fishies.ranim2.theming.Theme
+import dev.fishies.ranim2.util.loadBytes
 import dev.fishies.ranim2.util.loadJson
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -30,6 +31,8 @@ data class AnimationData(
     val fn: () -> Animation?,
 )
 
+var loader: URLClassLoader? = null
+
 @OptIn(ExperimentalSerializationApi::class, ExperimentalCoroutinesApi::class)
 fun main(args: Array<String>) = application {
     val metadataPath = remember {
@@ -42,19 +45,22 @@ fun main(args: Array<String>) = application {
             watchFilesystem(FileSystems.getDefault().newWatchService(), metadataPath.parent)
         }.flowOn(Dispatchers.IO).transformLatest { metadata ->
             emit(Outcome.Progress)
-            val jarFilePath = Path.of(metadata.jarFileOutputPath)
+            val url = Path.of(metadata.jarFileOutputPath).absolute().toUri().toURL()
             while (true) {
                 delay(500.milliseconds)
+                loader?.close()
+                loader = URLClassLoader.newInstance(arrayOf(url))
+                val loader = loader!!
                 try {
-                    val url = jarFilePath.absolute().toUri().toURL()
                     emit(Outcome.Success(metadata.animations.map {
                         AnimationData(it.fnName) {
                             val oldLoader = Thread.currentThread().contextClassLoader
                             try {
-                                val loader = URLClassLoader.newInstance(arrayOf(url))
                                 val method = loader.loadClass(it.ownerClassName).getMethod(it.fnName)
                                 Thread.currentThread().contextClassLoader = loader
-                                method.invoke(null) as Animation
+                                val anim = method(null) as Animation
+                                // loader.close()
+                                anim
                             } catch (e: Exception) {
                                 println("An exception occurred when attempting to load animation ${it.ownerClassName}.${it.fnName}: $e")
                                 println("Stack trace: ${e.stackTraceToString()}")
@@ -70,9 +76,10 @@ fun main(args: Array<String>) = application {
                 }
             }
         }
+            .flowOn(Dispatchers.IO)
     }.collectAsState(Outcome.Progress)
 
-    val theme = loadJson<Theme>("catppuccin-mocha.json")
+    val theme = loadJson<Theme>("catppuccin-mocha.json", ::loadBytes::class.java.classLoader)
 
     @OptIn(InternalComposeUiApi::class) CompositionLocalProvider(
         LocalGraphicsContext provides remember { SkiaGraphicsContext() },
