@@ -8,5 +8,13 @@
     <inspection_tool class="LocalVariableName" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <option name="namePattern" value="_?[a-z][A-Za-z\d]*" />
     </inspection_tool>
+    <inspection_tool class="MultiplatformPreviewAnnotationInFunctionWithParameters" enabled="true" level="ERROR" enabled_by_default="true">
+      <option name="composableFile" value="true" />
+      <option name="previewFile" value="true" />
+    </inspection_tool>
+    <inspection_tool class="MultiplatformPreviewMultipleParameterProviders" enabled="true" level="ERROR" enabled_by_default="true">
+      <option name="composableFile" value="true" />
+      <option name="previewFile" value="true" />
+    </inspection_tool>
   </profile>
 </component>

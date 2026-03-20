@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.fishies.ranim2.Animation
 import dev.fishies.ranim2.Container
+import dev.fishies.ranim2.gui.util.toComposeColors
 import dev.fishies.ranim2.theming.LocalTheme
 import dev.fishies.ranim2.theming.defaultTheme
 import dev.fishies.ranim2.util.saveImage

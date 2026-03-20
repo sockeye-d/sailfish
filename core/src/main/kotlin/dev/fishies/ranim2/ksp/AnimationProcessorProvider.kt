@@ -19,7 +19,9 @@ data class AnimationSymbol(
     val ownerClassName: String,
     val fnName: String,
     val signature: String,
-)
+) {
+    override fun toString() = "$ownerClassName.$fnName($signature)"
+}
 
 class AnimationProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment) = AnimationProviderProcessor(environment)

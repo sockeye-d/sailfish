@@ -18,7 +18,7 @@ import kotlin.reflect.KProperty1
 
 private val loader = object{}::class.java.classLoader
 
-val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json", loader)
+val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json")
 
 class ColorPickerState {
     var color by mutableStateOf(Color.Red)
@@ -68,11 +68,11 @@ private fun CompositeElement.colorPicker(state: ColorPickerState) = panel(radius
 
 @AnimationProvider
 fun colorPickerAnimation() = animation {
-    theme = catppuccinMocha.copy(background2 = Color.White)
+    theme = catppuccinMocha
     val state = ColorPickerState()
 
     val picker = colorPicker(state)
-    picker.position = Offset(100f, 100f)
+    picker.position = Offset(150f, 150f)
 
     while (true) {
         yield(
