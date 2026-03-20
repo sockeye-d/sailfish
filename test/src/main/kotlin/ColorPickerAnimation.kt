@@ -93,7 +93,7 @@ fun colorPickerAnimation() = animation {
     }
 }
 
-@AnimationProvider
+@AnimationProvider(length = 50)
 fun showHi() = animation {
     val hi = text("This is some other text!", position = Offset(50f, 50f))
     while (true) {

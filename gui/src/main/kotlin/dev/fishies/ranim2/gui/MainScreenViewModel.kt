@@ -20,35 +20,39 @@ import kotlin.time.Duration.Companion.milliseconds
 @Stable
 data class AnimationData(
     val name: String,
-    val fn: () -> Animation?,
-)
+    val factory: () -> Animation?,
+) : () -> Animation? by factory
 
-class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: Path) {
+class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: Path?) {
     private var loader: URLClassLoader? = null
         set(value) {
             field?.close()
             field = value
         }
 
-    val animations = flow {
-        emit(Json.decodeFromStream(metadataPath.inputStream()))
-        watchFile(FileSystems.getDefault().newWatchService(), metadataPath.parent)
-    }.flowOn(Dispatchers.IO).transformLatest { metadata ->
-        emit(Outcome.Progress)
-        val url = arrayOf(Path.of(metadata.jarFileOutputPath).absolute().toUri().toURL())
-        while (true) {
-            delay(100.milliseconds)
-            loadJarFrom(url, metadata)
-            break
-        }
-    }.flowOn(Dispatchers.IO)
+    val animations = if (metadataPath != null) {
+        flow {
+            emit(Json.decodeFromStream(metadataPath.inputStream()))
+            watchFile(FileSystems.getDefault().newWatchService(), metadataPath.parent)
+        }.flowOn(Dispatchers.IO).transformLatest { metadata ->
+            emit(Outcome.Progress)
+            val jarUrl: URL = Path.of(metadata.jarFileOutputPath).absolute().toUri().toURL()
+            retry@ while (true) {
+                delay(100.milliseconds)
+                loadJarFrom(arrayOf(jarUrl), metadata) { break@retry }
+            }
+        }.flowOn(Dispatchers.IO)
+    } else {
+        flowOf(Outcome.Success(listOf(AnimationData("Animation 1") { null }, AnimationData("Animation 2") { null })))
+    }
 
     private val _activeAnimation = MutableStateFlow<Animation?>(null)
     val activeAnimation: StateFlow<Animation?> = _activeAnimation
 
-    fun setActiveAnimation(animation: Animation?) {
-        _activeAnimation.value = animation
-        animation?.tick()
+    fun setActiveAnimation(animation: AnimationData) {
+        val freshAnimation = animation()
+        _activeAnimation.value = freshAnimation
+        freshAnimation?.tick()
     }
 
     private val _paused = MutableStateFlow(false)
@@ -56,6 +60,14 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
 
     fun setPaused(paused: Boolean) {
         _paused.value = paused
+    }
+
+    fun tickFrame() {
+        if (paused.value) return
+        val activeAnimation = activeAnimation.value ?: return
+        if (!activeAnimation.isFinished) {
+            activeAnimation.tick()
+        }
     }
 
     private fun makeAnimationData(
@@ -75,14 +87,14 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
         }
     }
 
-    private suspend fun FlowCollector<Outcome<List<AnimationData>>>.loadJarFrom(
-        url: Array<URL>, metadata: AnimationMetadata
+    private suspend inline fun FlowCollector<Outcome<List<AnimationData>>>.loadJarFrom(
+        url: Array<URL>, metadata: AnimationMetadata, onSuccess: () -> Nothing,
     ) {
         loader = URLClassLoader.newInstance(url).also { loader ->
             try {
                 val animations = metadata.animations.map { makeAnimationData(it, loader) }
                 emit(Outcome.Success(animations))
-                return
+                onSuccess()
             } catch (e: ReflectiveOperationException) {
                 println("Retrying due to $e")
             }
