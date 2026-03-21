@@ -4,27 +4,33 @@ import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.*
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import dev.fishies.ranim2.Animation
 import dev.fishies.ranim2.gui.util.toComposeColors
 import dev.fishies.ranim2.theming.LocalTheme
 import dev.fishies.ranim2.theming.defaultTheme
+import dev.fishies.ranim2.util.exp10
 import kotlinx.coroutines.launch
+import kotlin.math.log10
+import kotlin.math.pow
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -53,7 +59,8 @@ fun MainScreen(
                             setActiveAnimation = setActiveAnimation,
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                         )
-                        ScrubBar(modifier = Modifier.height(16.dp).fillMaxWidth())
+
+                        ScrubBar(remember { ScrubBarState() }, modifier = Modifier.height(64.dp).fillMaxWidth())
                     }
                 }
             }
@@ -169,21 +176,64 @@ private fun DrawScope.drawBorderGradient(color: Color, width: Float = 15.0f) {
 
 @Stable
 class ScrubBarState {
-    var scrollAmount by mutableStateOf(0f)
+    var scroll by mutableStateOf(0f)
     var zoom by mutableStateOf(1f)
+
+    val speed = 2.0f
 }
 
+private val tickShape = RoundedCornerShape(2.0.dp)
+
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ScrubBar(state: ScrubBarState = remember { ScrubBarState() }, modifier: Modifier = Modifier) {
-    Canvas(modifier.onRotaryScrollEvent { e ->
-        state.scrollAmount += e.verticalScrollPixels
-        true
-    }) {
-        drawRect(Color.Blue)
-        for (i in -100..100) {
-            val absoluteX = i * 50f
-            val x = absoluteX * state.zoom + state.scrollAmount
-            drawRect(Color.White, Offset(x, 0.0f), Size(2.0f, size.height))
+fun ScrubBar(state: ScrubBarState, modifier: Modifier = Modifier) {
+    val contentColor = LocalContentColor.current
+    val tickColor = lerp(LocalContentColor.current, MaterialTheme.colors.surface, 0.5f)
+    val measurer = rememberTextMeasurer(1000)
+    var mouseX by remember { mutableFloatStateOf(0f) }
+
+    val smoothed by animateOffsetAsState(Offset(state.scroll, state.zoom), spring(stiffness = 800f))
+    val localFontSize = LocalTextStyle.current.fontSize
+    val modifier = modifier.scrollable(rememberScrollableState {
+        state.scroll -= it * state.speed
+        it
+    }, Orientation.Vertical).transformable(rememberTransformableState { zoomChange, _, _ ->
+        val zoomChange = zoomChange.pow(state.speed)
+        state.zoom *= zoomChange
+        state.scroll = -mouseX + (mouseX + state.scroll) * zoomChange
+    }).onPointerEvent(PointerEventType.Move) {
+        mouseX = it.changes.first().position.x
+    }
+    val textSize by derivedStateOf { measurer.measure("0", TextStyle(fontSize = localFontSize)).multiParagraph.height }
+    Canvas(modifier) {
+        val (scroll, zoom) = smoothed
+        val scale = log10(3f / zoom)
+        val scaleFloor = scale.toInt().coerceAtLeast(0)
+        val powerScaleFloor = exp10(scaleFloor)
+        val powerScaleCeil = exp10(scaleFloor + 1)
+        val scaleFrac = ((3f / zoom) - powerScaleFloor) / (powerScaleFloor * 9)
+        val progression = SnappedIntProgression(
+            // A little padding to make sure numbers don't get cut off at the ends
+            (scroll / 50.0f / zoom).toInt() - powerScaleFloor,
+            ((scroll + size.width) / 50.0f / zoom).toInt() + 1 + powerScaleFloor,
+            powerScaleFloor
+        )
+        for (frame in progression) {
+            val alpha = if (frame % powerScaleCeil == 0) 1.0f else (1.0f - scaleFrac).pow(2.0f)
+            val color = contentColor.copy(alpha = alpha)
+
+            val absoluteX = (frame) * 50f
+            val x = absoluteX * zoom - scroll
+            val tickSize = Size(2.0f, (size.height - textSize) * alpha)
+            withTransform({ translate(left = x, top = textSize) }) {
+                drawOutline(
+                    tickShape.createOutline(tickSize, layoutDirection, Density(density)), tickColor.copy(alpha = alpha)
+                )
+            }
+            val result = measurer.measure("$frame", TextStyle(fontSize = localFontSize * (alpha * 0.5 + 0.5)))
+            drawText(
+                result, color, Offset(x - result.multiParagraph.width * 0.5f, 20.0f - result.multiParagraph.height)
+            )
         }
     }
 }
@@ -193,5 +243,20 @@ fun ScrubBar(state: ScrubBarState = remember { ScrubBarState() }, modifier: Modi
 internal fun MainScreenPreview() {
     MaterialTheme(colors = defaultTheme.toComposeColors()) {
         MainScreen(Outcome.Success(emptyList()), false, {}, null, {})
+    }
+}
+
+class SnappedIntProgression(val min: Int, val max: Int, val step: Int) : Iterable<Int> {
+    override fun iterator(): IntIterator = Iterator(min, max, step)
+
+    private class Iterator(min: Int, val max: Int, val step: Int, sign: Int = if (min < 0) 0 else 1) : IntIterator() {
+        var current: Int = if (min / step * step == min) min else (min / step + sign) * step
+        override fun nextInt(): Int {
+            val last = current
+            current += step
+            return last
+        }
+
+        override fun hasNext() = current <= max
     }
 }

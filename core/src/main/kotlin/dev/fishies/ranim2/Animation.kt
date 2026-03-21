@@ -7,6 +7,7 @@ class Animation : CompositeElement(), Animated {
     internal lateinit var continuation: Continuation<Unit>
     override var isFinished = false
     var ticks = 0
+        private set
 
     override fun tick() {
         continuation.resume(Unit)

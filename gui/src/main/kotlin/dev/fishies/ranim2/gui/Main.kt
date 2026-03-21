@@ -36,7 +36,7 @@ fun main(args: Array<String>) = application {
                 withFrameMillis { vm.tickFrame() }
             }
         }
-        MaterialTheme(colors = LocalTheme.current.toComposeColors()) {
+        MaterialTheme(colors = theme.toComposeColors()) {
             CompositionLocalProvider(
                 LocalGraphicsContext provides rememberSkiaGraphicsContext(),
                 LocalTheme provides theme,

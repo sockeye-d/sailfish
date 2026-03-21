@@ -14,6 +14,8 @@ import dev.fishies.ranim2.syntax.highlightToAnnotations
 import dev.fishies.ranim2.theming.theme
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.math.exp
+import kotlin.math.pow
 
 fun Size.coerceAtLeast(minimumSize: Size) =
     Size(width.coerceAtLeast(minimumSize.width), height.coerceAtLeast(minimumSize.height))
@@ -106,13 +108,32 @@ fun lerp(start: Color, stop: Color, fraction: Float, colorSpace: ColorSpace = Co
     // Lab/alpha values to be outside of the valid color range.
     // Clamping the fraction is cheaper than clamping all 4 components separately.
     val t = fraction.fastCoerceIn(0.0f, 1.0f)
-    val interpolated =
-        Color(
-            lerp(startL, endL, t),
-            lerp(startA, endA, t),
-            lerp(startB, endB, t),
-            lerp(startAlpha, endAlpha, t),
-            colorSpace,
-        )
+    val interpolated = Color(
+        lerp(startL, endL, t),
+        lerp(startA, endA, t),
+        lerp(startB, endB, t),
+        lerp(startAlpha, endAlpha, t),
+        colorSpace,
+    )
     return interpolated.convert(stop.colorSpace)
+}
+
+/**
+ * [delta] is in seconds per frame
+ */
+fun expDamp(source: Float, target: Float, smoothing: Float, delta: Float) =
+    lerp(target, source, exp(-smoothing * delta))
+
+fun exp10(power: Int) = when (power) {
+    0 -> 1
+    1 -> 10
+    2 -> 100
+    3 -> 1000
+    4 -> 10000
+    5 -> 100000
+    6 -> 1000000
+    7 -> 10000000
+    8 -> 100000000
+    9 -> 1000000000
+    else -> 10.0.pow(power).toInt()
 }
