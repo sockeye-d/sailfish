@@ -22,5 +22,6 @@ kotlin {
     compilerOptions {
         optIn.add("kotlinx.serialization.ExperimentalSerializationApi")
         optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
+        optIn.add("androidx.compose.foundation.ExperimentalFoundationApi")
     }
 }

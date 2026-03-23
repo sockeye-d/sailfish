@@ -30,18 +30,39 @@ fun main(args: Array<String>) = application {
         val theme = loadJson<Theme>("catppuccin-mocha.json")
         val paused = vm.paused.collectAsState().value
         val activeAnimation = vm.activeAnimation.collectAsState().value
+        val stateObject = vm.cursorFrame.collectAsState()
+        val cursorFrame = object : MutableState<Int> {
+            override var value: Int
+                get() = stateObject.value
+                set(value) {
+                    component2()(value)
+                }
+
+            override fun component1() = stateObject.value
+
+            override fun component2() = vm::setCursorFrame
+        }
 
         LaunchedEffect(Unit) {
             while (true) {
                 withFrameMillis { vm.tickFrame() }
             }
         }
+
         MaterialTheme(colors = theme.toComposeColors()) {
             CompositionLocalProvider(
                 LocalGraphicsContext provides rememberSkiaGraphicsContext(),
                 LocalTheme provides theme,
             ) {
-                MainScreen(animations, paused, vm::setPaused, activeAnimation, vm::setActiveAnimation)
+                MainScreen(
+                    animations,
+                    paused,
+                    vm::setPaused,
+                    activeAnimation,
+                    vm::setActiveAnimation,
+                    cursorFrame,
+                    vm::setCursorFrame
+                )
             }
         }
     }

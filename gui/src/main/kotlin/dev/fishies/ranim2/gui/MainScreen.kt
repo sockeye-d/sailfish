@@ -2,10 +2,10 @@ package dev.fishies.ranim2.gui
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -17,20 +17,16 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.*
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import dev.fishies.ranim2.Animation
-import dev.fishies.ranim2.gui.util.toComposeColors
+import dev.fishies.ranim2.gui.util.onDragAbsolute
 import dev.fishies.ranim2.theming.LocalTheme
-import dev.fishies.ranim2.theming.defaultTheme
 import dev.fishies.ranim2.util.exp10
 import kotlinx.coroutines.launch
-import kotlin.math.log10
-import kotlin.math.pow
+import kotlin.math.*
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -40,6 +36,8 @@ fun MainScreen(
     setPaused: (Boolean) -> Unit,
     activeAnimation: Animation?,
     setActiveAnimation: (AnimationData) -> Unit = {},
+    cursorFrameState: MutableState<Int>,
+    setCursorFrame: (Int) -> Unit = {},
 ) {
     var layerSize by remember { mutableStateOf(IntSize.Zero) }
     val graphicsLayer = rememberGraphicsLayer().configureAnimation(activeAnimation, layerSize)
@@ -60,7 +58,11 @@ fun MainScreen(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                         )
 
-                        ScrubBar(remember { ScrubBarState() }, modifier = Modifier.height(64.dp).fillMaxWidth())
+                        ScrubBar(remember {
+                            ScrubBarState(
+                                cursorFrameState = cursorFrameState,
+                            )
+                        }, modifier = Modifier.height(64.dp).fillMaxWidth())
                     }
                 }
             }
@@ -175,38 +177,69 @@ private fun DrawScope.drawBorderGradient(color: Color, width: Float = 15.0f) {
 }
 
 @Stable
-class ScrubBarState {
-    var scroll by mutableStateOf(0f)
-    var zoom by mutableStateOf(1f)
+class ScrubBarState(cursorFrameState: MutableState<Int>) {
+    var scroll by mutableFloatStateOf(0f)
+    var zoom by mutableFloatStateOf(1f)
+    var cursorFrame by cursorFrameState
 
     val speed = 2.0f
 }
 
 private val tickShape = RoundedCornerShape(2.0.dp)
+private val knobShape = GenericShape { (width, height), _ ->
+    lineTo(width, 0.0f)
+    lineTo(width * 0.5f, height)
+    close()
+}
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ScrubBar(state: ScrubBarState, modifier: Modifier = Modifier) {
     val contentColor = LocalContentColor.current
     val tickColor = lerp(LocalContentColor.current, MaterialTheme.colors.surface, 0.5f)
+    val primaryColor = MaterialTheme.colors.primary
     val measurer = rememberTextMeasurer(1000)
     var mouseX by remember { mutableFloatStateOf(0f) }
+    var pressed by remember { mutableStateOf(false) }
 
     val smoothed by animateOffsetAsState(Offset(state.scroll, state.zoom), spring(stiffness = 800f))
     val localFontSize = LocalTextStyle.current.fontSize
+
+    fun updateCursorFrame() {
+        state.cursorFrame = ((mouseX + state.scroll) / 50f / state.zoom).roundToInt()
+    }
+
     val modifier = modifier.scrollable(rememberScrollableState {
-        state.scroll -= it * state.speed
+        state.scroll = (state.scroll - it * state.speed).coerceAtLeast(-100f)
         it
     }, Orientation.Vertical).transformable(rememberTransformableState { zoomChange, _, _ ->
         val zoomChange = zoomChange.pow(state.speed)
         state.zoom *= zoomChange
-        state.scroll = -mouseX + (mouseX + state.scroll) * zoomChange
-    }).onPointerEvent(PointerEventType.Move) {
-        mouseX = it.changes.first().position.x
+        state.scroll = (-mouseX + (mouseX + state.scroll) * zoomChange).coerceAtLeast(-100f)
+    }).pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                val e = awaitPointerEvent()
+                if (e.type == PointerEventType.Move) {
+                    mouseX = e.changes.first().position.x
+                    if (pressed) {
+                        updateCursorFrame()
+                    }
+                }
+                if (e.button == PointerButton.Primary && e.type == PointerEventType.Press) {
+                    pressed = true
+                    updateCursorFrame()
+                }
+                if (e.button == PointerButton.Primary && e.type == PointerEventType.Release) {
+                    pressed = false
+                }
+            }
+        }
     }
     val textSize by derivedStateOf { measurer.measure("0", TextStyle(fontSize = localFontSize)).multiParagraph.height }
+    val scroll by derivedStateOf { smoothed.x }
+    val zoom by derivedStateOf { smoothed.y }
     Canvas(modifier) {
-        val (scroll, zoom) = smoothed
         val scale = log10(3f / zoom)
         val scaleFloor = scale.toInt().coerceAtLeast(0)
         val powerScaleFloor = exp10(scaleFloor)
@@ -222,10 +255,9 @@ fun ScrubBar(state: ScrubBarState, modifier: Modifier = Modifier) {
             val alpha = if (frame % powerScaleCeil == 0) 1.0f else (1.0f - scaleFrac).pow(2.0f)
             val color = contentColor.copy(alpha = alpha)
 
-            val absoluteX = (frame) * 50f
-            val x = absoluteX * zoom - scroll
+            val x = frame * 50f * zoom - scroll
             val tickSize = Size(2.0f, (size.height - textSize) * alpha)
-            withTransform({ translate(left = x, top = textSize) }) {
+            withTransform({ translate(left = x - 1.0f, top = textSize) }) {
                 drawOutline(
                     tickShape.createOutline(tickSize, layoutDirection, Density(density)), tickColor.copy(alpha = alpha)
                 )
@@ -235,15 +267,30 @@ fun ScrubBar(state: ScrubBarState, modifier: Modifier = Modifier) {
                 result, color, Offset(x - result.multiParagraph.width * 0.5f, 20.0f - result.multiParagraph.height)
             )
         }
+        val cursorX = state.cursorFrame * 50f * zoom - scroll
+        withTransform({ translate(left = cursorX - 1.0f, top = textSize) }) {
+            drawOutline(
+                tickShape.createOutline(Size(2.0f, size.height - textSize), layoutDirection, Density(density)),
+                primaryColor
+            )
+        }
+        withTransform({ translate(left = cursorX - 4.0f, top = textSize) }) {
+            drawOutline(
+                knobShape.createOutline(Size(8.0f, 8.0f * sqrt(3.0f) / 2.0f), layoutDirection, Density(density)),
+                primaryColor
+            )
+        }
     }
-}
-
-@Preview
-@Composable
-internal fun MainScreenPreview() {
-    MaterialTheme(colors = defaultTheme.toComposeColors()) {
-        MainScreen(Outcome.Success(emptyList()), false, {}, null, {})
-    }
+    var frame by remember { mutableIntStateOf(0) }
+    Box(
+        Modifier.absoluteOffset(x = (frame * 50f * zoom - scroll).dp)
+            .size(10.dp)
+            .background(Color.Red)
+            .onDragAbsolute(initialOffset = { Offset(frame * 50f * zoom - scroll, 0f) }) { (x, _) ->
+                println(zoom)
+                frame = ((x + scroll) / 50f / zoom).roundToInt()
+            },
+    )
 }
 
 class SnappedIntProgression(val min: Int, val max: Int, val step: Int) : Iterable<Int> {

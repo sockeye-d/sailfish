@@ -10,15 +10,13 @@ import dev.fishies.ranim2.containers.*
 import dev.fishies.ranim2.containers.Anchor
 import dev.fishies.ranim2.elements.rectangle
 import dev.fishies.ranim2.elements.text
-import dev.fishies.ranim2.theming.Theme
 import dev.fishies.ranim2.theming.theme
 import dev.fishies.ranim2.tweener.*
-import dev.fishies.ranim2.util.loadJson
 import kotlin.reflect.KProperty1
 
 private val loader = object{}::class.java.classLoader
 
-val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json")
+// val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json")
 
 class ColorPickerState {
     var color by mutableStateOf(Color.Red)
@@ -68,7 +66,7 @@ private fun CompositeElement.colorPicker(state: ColorPickerState) = panel(radius
 
 @AnimationProvider
 fun colorPickerAnimation() = animation {
-    theme = catppuccinMocha
+    // theme = catppuccinMocha
     val state = ColorPickerState()
 
     val picker = colorPicker(state)
@@ -104,7 +102,7 @@ fun showHi() = animation {
 
 // @AnimationProvider
 // fun showHi2() = animation {
-//     val hi = text("This is some other text!", position = Offset(50f, 50f))
+//     val hi = text("Please work ", position = Offset(50f, 50f), color = theme.error)
 //     while (true) {
 //         yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
 //         yield(hi::position.tween(to = Offset(50f, 50f), length = 100, tweener = cubic(InOut)))
