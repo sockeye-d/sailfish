@@ -5,8 +5,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import dev.fishies.ranim2.gui.util.rememberSkiaGraphicsContext
-import dev.fishies.ranim2.gui.util.toComposeColors
+import dev.fishies.ranim2.gui.util.*
 import dev.fishies.ranim2.theming.LocalTheme
 import dev.fishies.ranim2.theming.Theme
 import dev.fishies.ranim2.util.loadJson
@@ -30,23 +29,13 @@ fun main(args: Array<String>) = application {
         val theme = loadJson<Theme>("catppuccin-mocha.json")
         val paused = vm.paused.collectAsState().value
         val activeAnimation = vm.activeAnimation.collectAsState().value
+        val activeAnimationData = vm.activeAnimationData.collectAsState().value
         val stateObject = vm.cursorFrame.collectAsState()
-        val cursorFrame = object : MutableState<Int> {
-            override var value: Int
-                get() = stateObject.value
-                set(value) {
-                    component2()(value)
-                }
-
-            override fun component1() = stateObject.value
-
-            override fun component2() = vm::setCursorFrame
-        }
+        val cursorFrame = remember { mutableStateFrom(stateObject, vm::setCursorFrame) }
+        val markers = vm.guiMarkerStorage.markers
 
         LaunchedEffect(Unit) {
-            while (true) {
-                withFrameMillis { vm.tickFrame() }
-            }
+            vm.ready()
         }
 
         MaterialTheme(colors = theme.toComposeColors()) {
@@ -60,8 +49,10 @@ fun main(args: Array<String>) = application {
                     vm::setPaused,
                     activeAnimation,
                     vm::setActiveAnimation,
+                    activeAnimationData,
                     cursorFrame,
-                    vm::setCursorFrame
+                    markers,
+                    vm::modifyMarker,
                 )
             }
         }

@@ -1,5 +1,6 @@
 package dev.fishies.ranim2.ksp
 
+import androidx.compose.runtime.Immutable
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getAnnotationsByType
 import com.google.devtools.ksp.processing.*
@@ -10,12 +11,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 
+@Immutable
 @Serializable
 data class AnimationMetadata(
     val jarFileOutputPath: String,
     val animations: List<AnimationSymbol>,
 )
 
+@Immutable
 @Serializable
 data class AnimationSymbol(
     val ownerClassName: String,
@@ -27,7 +30,7 @@ data class AnimationSymbol(
 
     @Serializable
     data class Data(
-        val length: Int = Int.MAX_VALUE,
+        val framerate: Int = 60,
     )
 }
 
@@ -51,7 +54,7 @@ class AnimationProviderProcessor(private val environment: SymbolProcessorEnviron
                 fnName = resolver.getJvmName(it)!!,
                 signature = resolver.mapToJvmSignature(it)!!,
                 data = AnimationSymbol.Data(
-                    length = it.getAnnotationsByType(AnimationProvider::class).first().length,
+                    framerate = it.getAnnotationsByType(AnimationProvider::class).first().framerate,
                 )
             )
         }

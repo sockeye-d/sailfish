@@ -14,7 +14,7 @@ import dev.fishies.ranim2.theming.theme
 import dev.fishies.ranim2.tweener.*
 import kotlin.reflect.KProperty1
 
-private val loader = object{}::class.java.classLoader
+private val loader = object {}::class.java.classLoader
 
 // val catppuccinMocha = loadJson<Theme>("files/catppuccin-mocha.json")
 
@@ -67,36 +67,27 @@ private fun CompositeElement.colorPicker(state: ColorPickerState) = panel(radius
 @AnimationProvider
 fun colorPickerAnimation() = animation {
     // theme = catppuccinMocha
+    println("hi8")
     val state = ColorPickerState()
 
     val picker = colorPicker(state)
-    picker.position = Offset(350f, 150f)
+    picker.position = Offset(150f, 150f)
 
-    while (true) {
-        yield(
-            state::color.tween(
-                to = theme.primary, length = 300, tweener = quadratic(InOut), colorSpace = ColorSpaces.Oklab
-            )
-        )
-        yield(
-            state::color.tween(
-                to = theme.secondary, length = 300, tweener = quadratic(InOut), colorSpace = ColorSpaces.Oklab
-            )
-        )
-        yield(
-            state::color.tween(
-                to = theme.error, length = 300, tweener = quadratic(InOut), colorSpace = ColorSpaces.Oklab
-            )
-        )
+    yield("event")
+
+    val colors = listOf(theme.primary, theme.secondary, theme.error)
+
+    for (color in colors) {
+        yield(state::color.tween(to = color, length = 25, tweener = quadratic(InOut), colorSpace = ColorSpaces.Oklab))
     }
 }
 
-@AnimationProvider(length = 50)
+@AnimationProvider
 fun showHi() = animation {
-    val hi = text("This is some other text!", position = Offset(50f, 50f))
-    while (true) {
-        yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
-        yield(hi::position.tween(to = Offset(50f, 50f), length = 100, tweener = cubic(InOut)))
+    val hi = text("i am getting internal kotlinc errors they look scary", position = Offset(50f, 50f))
+    for (i in 1..1000) {
+        yield(hi::position.tween(to = Offset(100f, 50f), length = 30, tweener = cubic(InOut)))
+        yield(hi::position.tween(to = Offset(50f, 50f), length = 30, tweener = cubic(InOut)))
     }
 }
 

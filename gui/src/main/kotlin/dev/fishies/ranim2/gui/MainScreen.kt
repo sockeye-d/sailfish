@@ -2,37 +2,24 @@ package dev.fishies.ranim2.gui
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.GenericShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.*
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.WindowPosition.PlatformDefault.x
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import dev.fishies.ranim2.Animation
-import dev.fishies.ranim2.gui.util.onDragAbsolute
+import dev.fishies.ranim2.Marker
 import dev.fishies.ranim2.theming.LocalTheme
-import dev.fishies.ranim2.util.exp10
 import kotlinx.coroutines.launch
-import kotlin.math.*
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -42,8 +29,10 @@ fun MainScreen(
     setPaused: (Boolean) -> Unit,
     activeAnimation: Animation?,
     setActiveAnimation: (AnimationData) -> Unit = {},
+    activeAnimationData: AnimationData?,
     cursorFrameState: MutableState<Int>,
-    setCursorFrame: (Int) -> Unit = {},
+    markers: Map<String, Marker>,
+    modifyMarker: (String, Marker) -> Unit,
 ) {
     var layerSize by remember { mutableStateOf(IntSize.Zero) }
     val graphicsLayer = rememberGraphicsLayer().configureAnimation(activeAnimation, layerSize)
@@ -62,6 +51,18 @@ fun MainScreen(
                             animations,
                             setActiveAnimation = setActiveAnimation,
                             modifier = Modifier.align(Alignment.CenterHorizontally),
+                            left = {
+                                if (activeAnimationData != null) {
+                                    Text("${activeAnimationData.symbol.data.framerate}")
+                                }
+                            },
+                            right = {
+                                AnimationPicker(
+                                    animations,
+                                    setActiveAnimation = setActiveAnimation,
+                                    modifier = Modifier
+                                )
+                            }
                         )
 
                         ScrubBar(
@@ -70,7 +71,9 @@ fun MainScreen(
                                     cursorFrameState = cursorFrameState,
                                 )
                             },
-                            Modifier.height(128.dp).fillMaxWidth(),
+                            markers,
+                            modifyMarker,
+                            Modifier.height(128.dp).fillMaxWidth().padding(bottom = 8.dp),
                         )
                     }
                 }
@@ -88,10 +91,14 @@ private fun PlayControlBar(
     skipForwards: () -> Unit,
     animations: Outcome<List<AnimationData>>,
     setActiveAnimation: (AnimationData) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    left: @Composable RowScope.() -> Unit = {},
+    right: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier) {
-        Box(Modifier.weight(1f))
+        Row(Modifier.weight(1f).padding(start = 8.dp).align(Alignment.CenterVertically), Arrangement.Start, Alignment.CenterVertically) {
+            left()
+        }
         Row {
             IconButton(skipBackwards) {
                 Icon(
@@ -109,12 +116,8 @@ private fun PlayControlBar(
                 )
             }
         }
-        Box(Modifier.weight(1f)) {
-            AnimationPicker(
-                animations,
-                setActiveAnimation = setActiveAnimation,
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)
-            )
+        Row(Modifier.weight(1f).padding(end = 8.dp).align(Alignment.CenterVertically), Arrangement.End, Alignment.CenterVertically) {
+            right()
         }
     }
 }
@@ -183,172 +186,4 @@ private fun DrawScope.drawBorderGradient(color: Color, width: Float = 15.0f) {
     val vBrush = Brush.verticalGradient(*vStops)
     drawRect(hBrush)
     drawRect(vBrush)
-}
-
-@Stable
-class ScrubBarState(cursorFrameState: MutableState<Int>) {
-    var scroll by mutableFloatStateOf(0f)
-    var zoom by mutableFloatStateOf(1f)
-    var cursorFrame by cursorFrameState
-
-    val speed = 2.0f
-}
-
-private val tickShape = RoundedCornerShape(2.0.dp)
-private val knobShape = GenericShape { (width, height), _ ->
-    lineTo(width, 0.0f)
-    lineTo(width * 0.5f, height)
-    close()
-}
-
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
-@Composable
-fun ScrubBar(state: ScrubBarState, modifier: Modifier = Modifier) {
-    val contentColor = LocalContentColor.current
-    val tickColor = lerp(LocalContentColor.current, MaterialTheme.colors.surface, 0.5f)
-    val primaryColor = MaterialTheme.colors.primary
-    val measurer = rememberTextMeasurer(1000)
-    var mouseX by remember { mutableFloatStateOf(0f) }
-    var pressed by remember { mutableStateOf(false) }
-
-    val smoothed by animateOffsetAsState(Offset(state.scroll, state.zoom), spring(stiffness = 800f))
-    val localFontSize = LocalTextStyle.current.fontSize
-
-    fun updateCursorFrame() {
-        state.cursorFrame = ((mouseX + state.scroll) / 50f / state.zoom).roundToInt()
-    }
-
-    val modifier = modifier.scrollable(rememberScrollableState {
-        state.scroll = (state.scroll - it * state.speed).coerceAtLeast(-100f)
-        it
-    }, Orientation.Vertical).transformable(rememberTransformableState { zoomChange, _, _ ->
-        val zoomChange = zoomChange.pow(state.speed)
-        state.zoom *= zoomChange
-        state.scroll = (-mouseX + (mouseX + state.scroll) * zoomChange).coerceAtLeast(-100f)
-    })
-    val textSize by derivedStateOf { measurer.measure("0", TextStyle(fontSize = localFontSize)).multiParagraph.height }
-    Column(modifier) {
-        Canvas(Modifier.weight(1f).fillMaxWidth().pointerInput(Unit) {
-            awaitPointerEventScope {
-                while (true) {
-                    val e = awaitPointerEvent()
-                    if (e.type == PointerEventType.Move) {
-                        mouseX = e.changes.first().position.x
-                        if (pressed) {
-                            updateCursorFrame()
-                        }
-                    }
-                    if (e.button == PointerButton.Primary && e.type == PointerEventType.Press) {
-                        pressed = true
-                        updateCursorFrame()
-                    }
-                    if (e.button == PointerButton.Primary && e.type == PointerEventType.Release) {
-                        pressed = false
-                    }
-                }
-            }
-        }) {
-            val (scroll, zoom) = smoothed
-            val scale = log10(3f / zoom)
-            val scaleFloor = scale.toInt().coerceAtLeast(0)
-            val powerScaleFloor = exp10(scaleFloor)
-            val powerScaleCeil = exp10(scaleFloor + 1)
-            val scaleFrac = ((3f / zoom) - powerScaleFloor) / (powerScaleFloor * 9)
-            val progression = SnappedIntProgression(
-                // A little padding to make sure numbers don't get cut off at the ends
-                (scroll / 50.0f / zoom).toInt() - powerScaleFloor,
-                ((scroll + size.width) / 50.0f / zoom).toInt() + 1 + powerScaleFloor,
-                powerScaleFloor
-            )
-            for (frame in progression) {
-                val alpha = if (frame % powerScaleCeil == 0) 1.0f else (1.0f - scaleFrac).pow(2.0f)
-                val color = contentColor.copy(alpha = alpha)
-
-                val x = frame * 50f * zoom - scroll
-                val tickSize = Size(2.0f, (size.height - textSize) * alpha)
-                withTransform({ translate(left = x - 1.0f, top = textSize) }) {
-                    drawOutline(
-                        tickShape.createOutline(tickSize, layoutDirection, Density(density)),
-                        tickColor.copy(alpha = alpha)
-                    )
-                }
-                val result = measurer.measure("$frame", TextStyle(fontSize = localFontSize * (alpha * 0.5 + 0.5)))
-                drawText(
-                    result, color, Offset(x - result.multiParagraph.width * 0.5f, 20.0f - result.multiParagraph.height)
-                )
-            }
-            val cursorX = state.cursorFrame * 50f * zoom - scroll
-            withTransform({ translate(left = cursorX - 1.0f, top = textSize) }) {
-                drawOutline(
-                    tickShape.createOutline(Size(2.0f, size.height - textSize), layoutDirection, Density(density)),
-                    primaryColor
-                )
-            }
-            withTransform({ translate(left = cursorX - 4.0f, top = textSize) }) {
-                drawOutline(
-                    knobShape.createOutline(Size(8.0f, 8.0f * sqrt(3.0f) / 2.0f), layoutDirection, Density(density)),
-                    primaryColor
-                )
-            }
-        }
-        var frame by remember { mutableIntStateOf(0) }
-        val smoothScroll by derivedStateOf { smoothed.x }
-        val smoothZoom by derivedStateOf { smoothed.y }
-        // Surface(color = Color.Red) {
-        //     Text("hi")
-        // }
-        TimelineHandle({ smoothScroll }, { smoothZoom }, { frame }, { frame = it }) {
-            // BasicTextField(rememberTextFieldState("text"), lineLimits = TextFieldLineLimits.SingleLine)
-            Row {
-                Text("Text text text")
-            }
-        }
-    }
-}
-
-val timelineHandleShape =
-    RoundedCornerShape(topStartPercent = 0, bottomStartPercent = 50, topEndPercent = 50, bottomEndPercent = 50)
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-private fun TimelineHandle(
-    scroll: () -> Float,
-    zoom: () -> Float,
-    frame: () -> Int,
-    setFrame: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    val modifier = modifier.absoluteOffset(x = (frame() * 50f * zoom() - scroll()).dp).onDragAbsolute(
-            PointerMatcher.Primary,
-            initialOffset = { Offset(frame() * 50f * zoom() - scroll(), 0f) },
-        ) { (x, _) ->
-            setFrame(((x + scroll()) / 50f / zoom()).roundToInt())
-        }.clickable(null, indication = ripple()) {
-            println("clicked")
-    }
-    Surface(
-        shape = timelineHandleShape,
-        color = MaterialTheme.colors.primary,
-        modifier = modifier
-    ) {
-        Box(Modifier.padding(horizontal = 8.dp)) {
-            content()
-        }
-    }
-}
-
-class SnappedIntProgression(val min: Int, val max: Int, val step: Int) : Iterable<Int> {
-    override fun iterator(): IntIterator = Iterator(min, max, step)
-
-    private class Iterator(min: Int, val max: Int, val step: Int, sign: Int = if (min < 0) 0 else 1) : IntIterator() {
-        var current: Int = if (min / step * step == min) min else (min / step + sign) * step
-        override fun nextInt(): Int {
-            val last = current
-            current += step
-            return last
-        }
-
-        override fun hasNext() = current <= max
-    }
 }

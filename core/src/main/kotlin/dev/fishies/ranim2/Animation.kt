@@ -22,6 +22,21 @@ class Animation : CompositeElement(), Animated {
     override fun propertyList() = emptyMap<String, String>()
 }
 
+val Element.absoluteTicks: Int
+    get() {
+        var e = this
+        while (true) {
+            e.parent.let { it ->
+                if (it == null) {
+                    break
+                } else {
+                    e = it
+                }
+            }
+        }
+        return (e as Animation).ticks
+    }
+
 /**
  * Runs [animations] in parallel. If any of them inherit from [Element], they are automatically added as children to
  * be drawn, and automatically removed once they finish.
@@ -36,8 +51,9 @@ suspend fun Animation.yield(vararg animations: Animated) {
             if (animation.isFinished) {
                 finishedAnimations.add(animation)
 
-                if (animation !is Element) continue
-                removeChild(animation)
+                if (animation is Element) {
+                    removeChild(animation)
+                }
             }
         }
         yield()

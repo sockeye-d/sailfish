@@ -1,19 +1,15 @@
 package dev.fishies.ranim2.gui.util
 
-import dev.fishies.ranim2.ksp.AnimationMetadata
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
 import java.nio.file.*
-import kotlin.io.path.inputStream
+import kotlin.io.path.absolutePathString
 import kotlin.time.Duration.Companion.milliseconds
 
-@OptIn(ExperimentalSerializationApi::class)
-suspend fun FlowCollector<AnimationMetadata>.watchFile(watcher: WatchService, metadataPath: Path) {
+suspend fun FlowCollector<Path>.watchFile(watcher: WatchService, metadataPath: Path) {
+    val registeredPath = metadataPath.parent
     withContext(Dispatchers.IO) {
-        metadataPath.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY)
+        registeredPath.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE)
     }
 
     while (true) {
@@ -25,11 +21,15 @@ suspend fun FlowCollector<AnimationMetadata>.watchFile(watcher: WatchService, me
 
         for (event in key.pollEvents()) {
             val kind = event.kind()
-            if (kind != StandardWatchEventKinds.ENTRY_MODIFY) {
+            if (kind !in listOf(StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE)) {
                 continue
             }
             val path = event.context() as? Path ?: continue
-            emit(Json.decodeFromStream(path.inputStream()))
+            if (registeredPath.resolve(path).absolutePathString() != metadataPath.absolutePathString()) {
+                println("$path != $metadataPath")
+                continue
+            }
+            emit(path)
         }
 
         key.reset()
