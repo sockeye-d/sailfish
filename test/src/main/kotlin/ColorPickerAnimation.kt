@@ -53,7 +53,7 @@ private fun CompositeElement.colorPicker(state: ColorPickerState) = panel(radius
     padding = Padding(all = 8.0f)
     linear(Axis.Y) {
         separation = 10F
-        rectangle(Size(100f, 100f))() {
+        rectangle(Size(200f, 100f))() {
             ::customMinimumSize.bind { state.boxSize }
             ::color.bind { state.color }
         }
@@ -70,7 +70,7 @@ fun colorPickerAnimation() = animation {
     val state = ColorPickerState()
 
     val picker = colorPicker(state)
-    picker.position = Offset(150f, 150f)
+    picker.position = Offset(350f, 150f)
 
     while (true) {
         yield(

@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.takeOrElse
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 
@@ -16,14 +17,16 @@ suspend fun PointerInputScope.detectDragGesturesAbsolute(
     matcher: PointerMatcher = PointerMatcher.Primary, initialOffset: () -> Offset, onDrag: (Offset) -> Unit
 ) {
     var absoluteDragPosition = Offset.Unspecified
-    detectDragGestures(matcher, onDragStart = { absoluteDragPosition = it + initialOffset() }) {
-        absoluteDragPosition += it
+    detectDragGestures(matcher, onDragEnd = {
+        absoluteDragPosition = Offset.Unspecified
+    }, onDrag = {
+        absoluteDragPosition = absoluteDragPosition.takeOrElse(initialOffset) + it
         onDrag(absoluteDragPosition)
-    }
+    })
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-fun Modifier.onDragAbsolute(matcher: PointerMatcher = PointerMatcher.Primary, initialOffset: () -> Offset, onDrag: (Offset) -> Unit) = composed(
+fun Modifier.onDragAbsolute(matcher: PointerMatcher = PointerMatcher.Primary, vararg keys: Any?, initialOffset: () -> Offset, onDrag: (Offset) -> Unit) = composed(
     inspectorInfo = {
         name = "onDragAbsolute"
         properties["matcher"] = matcher
@@ -32,7 +35,7 @@ fun Modifier.onDragAbsolute(matcher: PointerMatcher = PointerMatcher.Primary, in
 ) {
     val matcherState by rememberUpdatedState(matcher)
     val onDragState by rememberUpdatedState(onDrag)
-    Modifier.pointerInput(Unit) {
+    Modifier.pointerInput(*keys) {
         detectDragGesturesAbsolute(matcherState, initialOffset, onDragState)
     }
 }
