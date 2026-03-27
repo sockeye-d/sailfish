@@ -62,7 +62,10 @@ fun MainScreen(
                             })
 
                         val animationEnd by rememberUpdatedState(state?.animationLength)
-                        val animationEndSmoothed by animateFloatAsState(animationEnd?.toFloat() ?: 0.0f, timelineElementAnimation)
+                        val animationEndSmoothed by animateFloatAsState(
+                            animationEnd?.toFloat() ?: 0.0f,
+                            timelineElementAnimation
+                        )
                         val secondary = MaterialTheme.colors.secondary
                         ScrubBar(
                             remember { ScrubBarState() },
@@ -73,7 +76,13 @@ fun MainScreen(
                                 animationEnd?.let { _ ->
                                     val startPos = getPosition(0.0f)
                                     val endPos = getPosition(animationEndSmoothed)
-                                    drawRoundRect(secondary, Offset(startPos, 0.0f), Size(endPos - startPos, 20f), alpha = 0.2f, cornerRadius = CornerRadius(4f, 4f))
+                                    drawRoundRect(
+                                        secondary,
+                                        Offset(startPos, 0.0f),
+                                        Size(endPos - startPos, 20f),
+                                        alpha = 0.2f,
+                                        cornerRadius = CornerRadius(4f, 4f)
+                                    )
                                     // drawRoundRect(secondary, Offset(startPos, 0.0f), Size(endPos - startPos, 10f), style = Stroke(2f), cornerRadius = CornerRadius(4f, 4f))
                                 }
                             }

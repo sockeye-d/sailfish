@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.withFrameMillis
 import dev.fishies.sailfish.*
 import dev.fishies.sailfish.elements.text
+import dev.fishies.sailfish.gui.util.watchDir
 import dev.fishies.sailfish.gui.util.watchFile
 import dev.fishies.sailfish.ksp.AnimationMetadata
 import dev.fishies.sailfish.ksp.AnimationSymbol
@@ -11,9 +12,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import org.gradle.tooling.GradleConnector
 import java.net.URL
 import java.net.URLClassLoader
-import java.nio.file.FileSystems
 import java.nio.file.Path
 import kotlin.io.path.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -84,7 +85,9 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
         flow {
             emit(json.decodeFromStream<AnimationMetadata>(metadataPath.inputStream()) to true)
             flow {
-                watchFile(FileSystems.getDefault().newWatchService(), metadataPath)
+                watchFile(metadataPath) {
+                    emit(it)
+                }
             }.collect {
                 emit(json.decodeFromStream<AnimationMetadata>(it.inputStream()) to false)
             }
@@ -101,9 +104,9 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
             } else {
                 emit(Outcome.Progress)
                 flow {
-                    watchFile(
-                        FileSystems.getDefault().newWatchService(), Path.of(metadata.jarFileOutputPath)
-                    )
+                    watchFile(Path.of(metadata.jarFileOutputPath)) {
+                        emit(it)
+                    }
                 }.flowOn(Dispatchers.IO).debounce(500.milliseconds).first()
                 emit(Outcome.Success(metadata))
             }
@@ -122,6 +125,27 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
     }
 
     fun ready() {
+        if (metadataPath != null) {
+            val projectDir = metadataPath.parent
+            val connection = GradleConnector.newConnector().forProjectDirectory(projectDir.toFile()).connect()
+            scope.launch(Dispatchers.IO) {
+                flow {
+                    watchDir(
+                        path = projectDir.resolve("src/"),
+                        projectDir.resolve("src/main/resources/markers.json")
+                    ) { it, _ ->
+                        if (!it.endsWith("~")) {
+                            emit(it)
+                        }
+                    }
+                }.debounce(10.milliseconds).collectLatest {
+                    println("Rebuilding due to $it")
+                    runInterruptible {
+                        connection.newBuild().forTasks("jar").run()
+                    }
+                }
+            }
+        }
         scope.launch {
             var lastTick: Long? = null
             while (true) {

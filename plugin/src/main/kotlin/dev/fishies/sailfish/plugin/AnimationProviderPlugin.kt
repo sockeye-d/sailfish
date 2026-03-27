@@ -7,10 +7,7 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.*
-import org.gradle.tooling.GradleConnector
-import org.gradle.tooling.ProjectConnection
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmExtension
-import kotlin.concurrent.thread
 
 const val composeVersion = "1.10.0"
 const val kotlinVersion = "2.3.0"
@@ -47,6 +44,18 @@ private fun Project.applyAnimationProviderPlugin() {
         isCanBeConsumed = false
     }
 
+    repositories {
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
+        mavenCentral()
+        maven { url = uri("https://repo.gradle.org/gradle/libs-releases") }
+    }
+
     dependencies {
         add("implementation", "dev.fishies.sailfish:core:1.0.0")
         add("guiConfig", "dev.fishies.sailfish:gui:1.0.0")
@@ -62,23 +71,23 @@ private fun Project.applyAnimationProviderPlugin() {
         exclude("**/markers.json")
     }
 
-    val watchSources = tasks.register("watchSources") {
-        doLast {
-            thread(start = true) {
-                GradleConnector.newConnector()
-                    .forProjectDirectory(project.projectDir)
-                    .connect()
-                    .use { connection: ProjectConnection ->
-                        connection.newBuild()
-                            .forTasks("jar")
-                            .addArguments("--continuous")
-                            .setStandardInput(System.`in`)
-                            .setStandardOutput(System.out)
-                            .run()
-                    }
-            }
-        }
-    }
+    // val watchSources = tasks.register("watchSources") {
+    //     doLast {
+    //         thread(start = true) {
+    //             GradleConnector.newConnector()
+    //                 .forProjectDirectory(project.projectDir)
+    //                 .connect()
+    //                 .use { connection: ProjectConnection ->
+    //                     connection.newBuild()
+    //                         .forTasks("jar")
+    //                         .addArguments("--continuous")
+    //                         .setStandardInput(System.`in`)
+    //                         .setStandardOutput(System.out)
+    //                         .run()
+    //                 }
+    //         }
+    //     }
+    // }
 
     val runGui = tasks.register<JavaExec>("runGui") {
         dependsOn(tasks.named("jar"))
@@ -90,6 +99,6 @@ private fun Project.applyAnimationProviderPlugin() {
     }
 
     tasks.register("gui") {
-        dependsOn(watchSources, runGui)
+        dependsOn(runGui)
     }
 }

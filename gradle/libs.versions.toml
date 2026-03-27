@@ -9,6 +9,8 @@ material3 = "1.10.0-alpha05"
 material-icons = "1.7.3"
 treesitter = "0.24.1"
 serialization-json = "1.10.0"
+gradle-tooling = "8.14.4"
+slf4j = "2.0.17"
 
 [libraries]
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
@@ -18,6 +20,8 @@ material-icons = { module = "org.jetbrains.compose.material:material-icons-exten
 treesitter = { module = "io.github.tree-sitter:ktreesitter", version.ref = "treesitter" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization-json" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
+gradle-tooling = { module = "org.gradle:gradle-tooling-api", version.ref = "gradle-tooling" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
 
 [plugins]
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hotReload" }
