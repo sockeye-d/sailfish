@@ -34,14 +34,7 @@ data class CurrentAnimationState(
 )
 
 class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: Path?) {
-    private var loader: URLClassLoader? = null
-        set(value) {
-            field?.apply {
-                println("Closing old loader...")
-                close()
-            }
-            field = value
-        }
+    private lateinit var loader: URLClassLoader
 
     val json = Json {
         prettyPrint = true
@@ -79,16 +72,16 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
         }
     }
 
-    val animationMetadata = if (metadataPath != null) {
-        val projectDir = metadataPath.parent
-        println("Initializing Gradle connection...")
-        val connection = GradleConnector.newConnector().forProjectDirectory(projectDir.toFile()).connect()
-        println("Gradle connection initialized!")
+    val projectDir = metadataPath?.parent
+    val connection = projectDir?.let {
+        GradleConnector.newConnector().forProjectDirectory(it.toFile()).connect()
+    }
+
+    val animationMetadata = if (projectDir != null && connection != null && metadataPath != null) {
         flow {
             emit(null)
             watchDir(
-                path = projectDir.resolve("src/"),
-                projectDir.resolve("src/main/resources/markers.json")
+                path = projectDir.resolve("src/"), projectDir.resolve("src/main/resources/markers.json")
             ) { it, _ ->
                 if (!it.endsWith("~")) {
                     emit(it)
@@ -103,8 +96,7 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
                 }
                 println("Rebuilt!")
             }
-            val newMetadata = json.decodeFromString<AnimationMetadata>(metadataPath.readText())
-            emit(Outcome.Success(newMetadata))
+            emit(Outcome.Success(json.decodeFromString<AnimationMetadata>(metadataPath.readText())))
         }.flowOn(Dispatchers.IO)
     } else {
         emptyFlow()
@@ -127,33 +119,6 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
     }
 
     fun ready() {
-        if (metadataPath != null) {
-            val projectDir = metadataPath.parent
-            scope.launch(Dispatchers.IO) {
-                println("Initializing Gradle connection...")
-                val connection = GradleConnector.newConnector().forProjectDirectory(projectDir.toFile()).connect()
-                println("Gradle connection initialized!")
-                flow {
-                    watchDir(
-                        path = projectDir.resolve("src/"),
-                        projectDir.resolve("src/main/resources/markers.json")
-                    ) { it, _ ->
-                        if (!it.endsWith("~")) {
-                            emit(it)
-                        }
-                    }
-                }.flowOn(Dispatchers.IO).debounce(100.milliseconds).transformLatest {
-                    emit(Outcome.Progress)
-                    println("Rebuilding due to $it")
-                    runInterruptible {
-                        connection.newBuild().forTasks("jar").setStandardOutput(System.out).run()
-                    }
-                    println("Rebuilt!")
-                    val newMetadata = json.decodeFromString<AnimationMetadata>(metadataPath.readText())
-                    emit(Outcome.Success(newMetadata))
-                }.flowOn(Dispatchers.IO)
-            }
-        }
         scope.launch {
             var lastTick: Long? = null
             while (true) {
@@ -183,16 +148,16 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
                 Triple(a, b, c)
             }.collect { (markers, meta, data) ->
                 if (data != null && meta is Outcome.Success) {
-                    val markers = mapOf(
-                        data.symbol.simpleString() to markers.mapValues { (_, value) -> value.position },
-                    )
+                    val key = data.symbol.simpleString()
+                    val markers = markers.mapValues { (_, value) -> value.position }
                     val markerStoragePath = Path.of(meta.data.resourceDir).resolve("markers.json")
                     markerStoragePath.createParentDirectories()
                     val data = if (markerStoragePath.exists()) {
                         runCatching { json.decodeFromString<Map<String, Map<String, Frames>>>(markerStoragePath.readText()) }.getOrElse { emptyMap() }
                     } else {
                         emptyMap()
-                    } + markers
+                    }.toMutableMap()
+                    data[key] = (data[key] ?: emptyMap()) + markers
                     markerStoragePath.writeText(json.encodeToString(data))
                 }
             }
@@ -246,18 +211,19 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
         pausedFlow.value = paused
     }
 
-    private val _cursorFrame = MutableStateFlow(1)
-    val cursorFrame: StateFlow<Int> = _cursorFrame
+    val cursorFrame: StateFlow<Int>
+        field = MutableStateFlow(1)
 
     fun setCursorFrame(cursor: Int, force: Boolean = false) {
         val cursor = cursor.coerceIn(1..(animationLength.value.coerceAtLeast(1)))
-        if (cursor == _cursorFrame.value && !force) return
+        if (cursor == cursorFrame.value && !force) return
         seekAnimationTo(cursor)
-        _cursorFrame.value = cursor
+        cursorFrame.value = cursor
+        setPaused(true)
     }
 
     private fun seekAnimationTo(cursor: Int) {
-        if (cursor <= _cursorFrame.value) {
+        if (cursor <= cursorFrame.value) {
             val animation = restartAnimation() ?: return
             for (i in 1..cursor) {
                 if (animation.isFinished) {
@@ -277,8 +243,8 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
     }
 
     fun seekBy(delta: Int) {
-        seekAnimationTo(_cursorFrame.value + delta)
-        _cursorFrame.value += delta
+        seekAnimationTo(cursorFrame.value + delta)
+        cursorFrame.value += delta
     }
 
     fun tickFrame() {
@@ -291,32 +257,39 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
 
     private fun makeAnimationData(
         symbol: AnimationSymbol, loader: URLClassLoader
-    ): AnimationData = AnimationData(symbol.fnName, symbol) {
-        try {
-            Thread.currentThread().contextClassLoader = loader
-            loader.loadClass(symbol.ownerClassName).getMethod(symbol.fnName)(null) as Animation
-        } catch (e: ClassCastException) {
-            println("Animation $symbol was not of type Animation")
-            println("Stack trace: ${e.stackTraceToString()}")
-            null
-        } catch (e: Exception) {
-            println("An exception occurred when attempting to load animation $symbol: $e")
-            println("Stack trace: ${e.stackTraceToString()}")
-            null
+    ): AnimationData {
+        val clazz = loader.loadClass(symbol.ownerClassName)!!
+        return AnimationData(symbol.fnName, symbol) {
+            try {
+                Thread.currentThread().contextClassLoader = loader
+                clazz.getMethod(symbol.fnName)(null) as Animation
+            } catch (e: ClassCastException) {
+                println("Animation $symbol was not of type Animation")
+                println("Stack trace: ${e.stackTraceToString()}")
+                null
+            } catch (e: Exception) {
+                println("An exception occurred when attempting to load animation $symbol: $e")
+                println("Stack trace: ${e.stackTraceToString()}")
+                null
+            }
         }
     }
 
-    private inline fun loadJarFrom(
+    private suspend fun loadJarFrom(
         url: Array<URL>,
         metadata: AnimationMetadata,
-        onSuccess: (List<AnimationData>) -> Unit,
+        onSuccess: suspend (List<AnimationData>) -> Unit,
     ) {
-        loader = URLClassLoader.newInstance(url).also { loader ->
+        while (true) {
+            if (::loader.isInitialized) loader.close()
+            loader = URLClassLoader(url)
             try {
                 onSuccess(metadata.animations.map { makeAnimationData(it, loader) })
+                return
             } catch (e: ReflectiveOperationException) {
                 println("Retrying due to $e")
             }
+            delay(100.milliseconds)
         }
     }
 

@@ -76,6 +76,7 @@ fun colorPickerAnimation() = animation {
     yield("event2")
     yield("event3")
     yield("event4")
+    // println("hi")
 
     val colors = listOf(theme.primary, theme.secondary, theme.error)
 
@@ -93,11 +94,15 @@ fun showHi() = animation {
     }
 }
 
-// @AnimationProvider
-// fun showHi2() = animation {
-//     val hi = text("Please work ", position = Offset(50f, 50f), color = theme.error)
-//     while (true) {
-//         yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
-//         yield(hi::position.tween(to = Offset(50f, 50f), length = 100, tweener = cubic(InOut)))
-//     }
-// }
+@AnimationProvider
+fun showHi2() = animation {
+    val hi = text("Please work ", position = Offset(50f, 50f), color = theme.onBackground)
+    yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
+    yield(hi::position.tween(to = Offset(50f, 50f), length = 100, tweener = cubic(InOut)))
+}
+
+@AnimationProvider
+fun showHi3() = animation {
+    val hi = rectangle(Size(50f, 50f), position = Offset(50f, 50f), color = theme.onBackground)
+    yield(hi::position.tween(to = Offset(100f, 50f), length = 100, tweener = cubic(InOut)))
+}

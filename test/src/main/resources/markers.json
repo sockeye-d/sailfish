@@ -1,9 +1,11 @@
 {
     "animations.colorPicker.ColorPickerAnimationKt.colorPickerAnimation": {
-        "event": 30,
-        "event2": 16,
-        "event3": 0,
-        "event4": 50
+        "event": 4,
+        "event2": 13,
+        "event4": 36,
+        "event3": 27
     },
-    "animations.colorPicker.ColorPickerAnimationKt.showHi": {}
+    "animations.colorPicker.ColorPickerAnimationKt.showHi": {},
+    "animations.colorPicker.ColorPickerAnimationKt.showHi2": {},
+    "animations.colorPicker.ColorPickerAnimationKt.showHi3": {}
 }

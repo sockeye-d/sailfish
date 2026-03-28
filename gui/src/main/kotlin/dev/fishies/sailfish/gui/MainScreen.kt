@@ -1,16 +1,20 @@
 package dev.fishies.sailfish.gui
 
 import androidx.compose.animation.Animatable
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -110,6 +114,7 @@ fun MainScreen(
     ReloadHighlight(animations, modifier = Modifier.fillMaxSize())
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun PlayControlBar(
     enabled: Boolean,
@@ -130,14 +135,34 @@ private fun PlayControlBar(
             left()
         }
         Row {
-            IconButton(skipBackwards, enabled = enabled) {
-                Icon(Icons.Rounded.SkipPrevious, null)
+            CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                IconButton(skipBackwards, enabled = enabled, modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)) {
+                    Icon(Icons.Rounded.ChevronLeft, null)
+                }
             }
             IconToggleButton(paused, { setPaused(!paused) }, enabled = enabled) {
-                Icon(if (paused) Icons.Rounded.PlayCircle else Icons.Rounded.PauseCircle, null, Modifier.size(32.dp))
+                var targetRotation by remember { mutableFloatStateOf(0f) }
+                LaunchedEffect(paused) {
+                    targetRotation -= 180f
+                }
+                val rotation by animateFloatAsState(
+                    targetValue = targetRotation,
+                    animationSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow)
+                )
+                Crossfade(paused) { paused ->
+                    Box(Modifier.rotate(-rotation)) {
+                        Icon(
+                            if (paused) Icons.Rounded.PlayCircle else Icons.Rounded.PauseCircle,
+                            null,
+                            Modifier.size(32.dp).rotate(targetRotation)
+                        )
+                    }
+                }
             }
-            IconButton(skipForwards, enabled = enabled) {
-                Icon(Icons.Rounded.SkipNext, null)
+            CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                IconButton(skipForwards, enabled = enabled, modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)) {
+                    Icon(Icons.Rounded.ChevronRight, null)
+                }
             }
         }
         Row(
