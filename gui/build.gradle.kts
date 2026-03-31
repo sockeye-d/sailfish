@@ -27,5 +27,6 @@ kotlin {
         optIn.add("kotlinx.coroutines.FlowPreview")
         optIn.add("androidx.compose.foundation.ExperimentalFoundationApi")
         freeCompilerArgs.add("-Xexplicit-backing-fields")
+        freeCompilerArgs.add("-Xcontext-parameters")
     }
 }

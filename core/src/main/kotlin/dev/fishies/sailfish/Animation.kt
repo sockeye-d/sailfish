@@ -26,7 +26,7 @@ val dev.fishies.sailfish.Element.absoluteTicks: Int
     get() {
         var e = this
         while (true) {
-            e.parent.let { it ->
+            e.parent.let {
                 if (it == null) {
                     break
                 } else {

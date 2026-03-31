@@ -14,19 +14,25 @@ import androidx.compose.ui.input.pointer.pointerInput
 
 @OptIn(ExperimentalFoundationApi::class)
 suspend fun PointerInputScope.detectDragGesturesAbsolute(
-    matcher: PointerMatcher = PointerMatcher.Primary, initialOffset: () -> Offset, onDrag: (Offset) -> Unit
+    matcher: PointerMatcher = PointerMatcher.Primary, initialOffset: () -> Offset, onDragEnd: () -> Unit, onDrag: (Offset, absoluteAbsolute: Offset) -> Unit
 ) {
     var absoluteDragPosition = Offset.Unspecified
-    detectDragGestures(matcher, onDragEnd = {
+    var absoluteAbsoluteDragPosition = Offset.Unspecified
+    detectDragGestures(matcher, onDragStart = {
+        absoluteAbsoluteDragPosition = it + initialOffset()
+    }, onDragEnd = {
         absoluteDragPosition = Offset.Unspecified
+        absoluteAbsoluteDragPosition = Offset.Unspecified
+        onDragEnd()
     }, onDrag = {
-        absoluteDragPosition = absoluteDragPosition.takeOrElse(initialOffset) + it
-        onDrag(absoluteDragPosition)
+        absoluteDragPosition = absoluteDragPosition.takeOrElse { initialOffset() } + it
+        absoluteAbsoluteDragPosition += it
+        onDrag(absoluteDragPosition, absoluteAbsoluteDragPosition)
     })
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-fun Modifier.onDragAbsolute(matcher: PointerMatcher = PointerMatcher.Primary, vararg keys: Any?, initialOffset: () -> Offset, onDrag: (Offset) -> Unit) = composed(
+fun Modifier.onDragAbsolute(matcher: PointerMatcher = PointerMatcher.Primary, vararg keys: Any?, initialOffset: () -> Offset, onDragEnd: () -> Unit = {}, onDrag: (Offset, absoluteAbsolute: Offset) -> Unit) = composed(
     inspectorInfo = {
         name = "onDragAbsolute"
         properties["matcher"] = matcher
@@ -36,6 +42,6 @@ fun Modifier.onDragAbsolute(matcher: PointerMatcher = PointerMatcher.Primary, va
     val matcherState by rememberUpdatedState(matcher)
     val onDragState by rememberUpdatedState(onDrag)
     Modifier.pointerInput(*keys) {
-        detectDragGesturesAbsolute(matcherState, initialOffset, onDragState)
+        detectDragGesturesAbsolute(matcherState, initialOffset, onDragEnd, onDrag)
     }
 }

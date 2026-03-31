@@ -1,19 +1,18 @@
+
 import io.github.treesitter.ktreesitter.plugin.GrammarExtension
 import io.github.treesitter.ktreesitter.plugin.GrammarFilesTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
-import org.gradle.api.tasks.Exec
-import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.invoke
-import org.gradle.kotlin.dsl.named
-import org.gradle.kotlin.dsl.register
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import java.io.File
-import java.util.Locale
 import org.gradle.api.provider.Property
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.invoke
+import org.gradle.kotlin.dsl.named
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import java.io.File
+import java.util.*
 
 fun <T> Property<T>.assign(value: T) {
     set(value)
@@ -89,7 +88,8 @@ private fun Project.generateTreeSitterParser(nameSupplier: () -> String, moduleS
             dependsOn(generateGrammarFilesTask)
 
             val inputFile = grammarDir.run {
-                resolveOrNull("bindings/c/tree-sitter.h.in") ?: resolveOrNull("bindings/c/tree-sitter-$name.h") ?: error("No C bindings in $grammarDir found!")
+                resolveOrNull("bindings/c/tree-sitter.h.in") ?: resolveOrNull("bindings/c/tree-sitter-$name.h")
+                ?: error("No C bindings in $grammarDir found!")
             }
             val outputFile = generatedSrc.file("jni/tree_sitter/tree-sitter-$name.h")
             inputs.file(inputFile)
@@ -103,8 +103,7 @@ private fun Project.generateTreeSitterParser(nameSupplier: () -> String, moduleS
             }
         }
 
-        val compileGrammarTask = tasks.register<Exec>("compileGrammar") {
-            dependsOn(generateGrammarFilesTask)
+        val compileGrammarTask = tasks.register("compileGrammar") {
             dependsOn(makeLangInclude)
 
             val libPath = getLibPathFor(os, System.getProperty("os.arch"), os.getSharedLibraryName("ktreesitter-$name"))
@@ -115,20 +114,28 @@ private fun Project.generateTreeSitterParser(nameSupplier: () -> String, moduleS
             val jniDir = generatedSrc.dir("jni")
 
             inputs.dir(grammarSrcDir)
+            inputs.property("java.home", System.getProperty("java.home"))
+            inputs.property("os.name", System.getProperty("os.name"))
+            inputs.property("os.arch", System.getProperty("os.arch"))
             outputs.file(libFile)
+            outputs.cacheIf { true }
 
-            val cc = if (os.isMacOsX) "clang" else "gcc"
+            doLast {
+                exec {
+                    val cc = if (os.isMacOsX) "clang" else "gcc"
 
-            commandLine(
-                cc, "-shared", "-fPIC", "-O2", "-std=c11",
-                "-I$grammarSrcDir",
-                "-I${jniDir.file("tree_sitter")}",
-                "-I${System.getProperty("java.home")}/include/${System.getProperty("os.name").toLowerCase()}",
-                "-I${System.getProperty("java.home")}/include",
-                "-o", libFile,
-                *parserSourceFiles,
-                jniDir.file("binding.c"),
-            )
+                    commandLine(
+                        cc, "-shared", "-fPIC", "-O2", "-std=c11",
+                        "-I$grammarSrcDir",
+                        "-I${jniDir.file("tree_sitter")}",
+                        "-I${System.getProperty("java.home")}/include/${System.getProperty("os.name").toLowerCase()}",
+                        "-I${System.getProperty("java.home")}/include",
+                        "-o", libFile,
+                        *parserSourceFiles,
+                        jniDir.file("binding.c"),
+                    )
+                }
+            }
         }
 
         val baseInterface = "dev.fishies.sailfish.languages.common.TreeSitterLanguage"
@@ -145,7 +152,6 @@ private fun Project.generateTreeSitterParser(nameSupplier: () -> String, moduleS
                 return@register
             }
 
-            val generatedSrc = generatedSrc
             val folder = generatedSrc.dir("jvmMain/kotlin/${module.replace(".", "/")}/$name")
             val generatedFile = folder.file("$langClassName.kt")
             val files = queriesFolder.listFiles()

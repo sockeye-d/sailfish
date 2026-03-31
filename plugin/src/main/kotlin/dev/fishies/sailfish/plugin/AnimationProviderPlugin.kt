@@ -8,6 +8,7 @@ import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.*
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmExtension
+import java.lang.management.ManagementFactory
 
 const val composeVersion = "1.10.0"
 const val kotlinVersion = "2.3.0"
@@ -92,10 +93,12 @@ private fun Project.applyAnimationProviderPlugin() {
     val runGui = tasks.register<JavaExec>("runGui") {
         dependsOn(tasks.named("jar"))
         inputs.file(jsonFile)
-        // debug = true
         classpath = guiConfig
         mainClass = "dev.fishies.sailfish.gui.MainKt"
         args = listOf(jsonFile.absolutePath)
+        if (ManagementFactory.getRuntimeMXBean().inputArguments.any { "-agentlib:jdwp" in it }) {
+            jvmArgs("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005")
+        }
     }
 
     tasks.register("gui") {

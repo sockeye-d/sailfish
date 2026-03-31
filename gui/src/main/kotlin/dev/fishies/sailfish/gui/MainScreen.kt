@@ -65,20 +65,19 @@ fun MainScreen(
 
                         val animationEnd by rememberUpdatedState(state?.animationLength)
                         val animationEndSmoothed by animateFloatAsState(
-                            animationEnd?.toFloat() ?: 0.0f,
-                            timelineElementAnimation
+                            animationEnd?.toFloat() ?: 0.0f, timelineElementAnimation
                         )
                         val secondary = MaterialTheme.colors.secondary
                         val cursorFrame by animateFloatAsState(cursorFrame.toFloat(), timelineElementAnimation)
                         ScrubBar(
-                            remember { ScrubBarState() },
+                            state = rememberScrubBarState(),
                             cursorFrame,
                             setCursorFrame,
                             Modifier.height(128.dp).fillMaxWidth().padding(bottom = 8.dp),
-                            drawContent = { getPosition, _ ->
+                            drawContent = {
                                 animationEnd?.let { _ ->
                                     val startPos = getPosition(0.0f)
-                                    val endPos = getPosition(animationEndSmoothed)
+                                    val endPos = getPosition(animationEndSmoothed - 1)
                                     drawRoundRect(
                                         secondary,
                                         Offset(startPos, 0.0f),
@@ -86,16 +85,13 @@ fun MainScreen(
                                         alpha = 0.2f,
                                         cornerRadius = CornerRadius(4f, 4f)
                                     )
-                                    // drawRoundRect(secondary, Offset(startPos, 0.0f), Size(endPos - startPos, 10f), style = Stroke(2f), cornerRadius = CornerRadius(4f, 4f))
                                 }
-                            }
-                        ) { getPosition, getFrame ->
+                            },
+                        ) {
                             for ((name, marker) in state?.markers ?: emptyMap()) {
                                 val name by rememberUpdatedState(name)
                                 val marker by rememberUpdatedState(marker)
                                 TimelineHandle(
-                                    getPosition,
-                                    getFrame,
                                     marker.position,
                                     { modifyMarker(name, marker.copy(position = it)) },
                                     Modifier.align(Alignment.BottomStart)
@@ -111,7 +107,7 @@ fun MainScreen(
             }
         }
     }
-    ReloadHighlight(animations, modifier = Modifier.fillMaxSize())
+    OutcomeHighlight(animations, modifier = Modifier.fillMaxSize())
 }
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -136,7 +132,11 @@ private fun PlayControlBar(
         }
         Row {
             CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                IconButton(skipBackwards, enabled = enabled, modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)) {
+                IconButton(
+                    skipBackwards,
+                    enabled = enabled,
+                    modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)
+                ) {
                     Icon(Icons.Rounded.ChevronLeft, null)
                 }
             }
@@ -146,8 +146,8 @@ private fun PlayControlBar(
                     targetRotation -= 180f
                 }
                 val rotation by animateFloatAsState(
-                    targetValue = targetRotation,
-                    animationSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow)
+                    targetRotation,
+                    spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow),
                 )
                 Crossfade(paused) { paused ->
                     Box(Modifier.rotate(-rotation)) {
@@ -160,8 +160,19 @@ private fun PlayControlBar(
                 }
             }
             CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                IconButton(skipForwards, enabled = enabled, modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)) {
+                IconButton(
+                    skipForwards,
+                    enabled = enabled,
+                    modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)
+                ) {
                     Icon(Icons.Rounded.ChevronRight, null)
+                }
+                IconButton(
+                    skipForwards,
+                    enabled = enabled,
+                    modifier = Modifier.align(Alignment.CenterVertically).size(32.dp).clip(CircleShape)
+                ) {
+                    Icon(Icons.Rounded.Repeat, null)
                 }
             }
         }
@@ -203,23 +214,36 @@ private fun AnimationPicker(
 }
 
 @Composable
-private fun ReloadHighlight(animations: Outcome<*>, modifier: Modifier = Modifier) {
+private fun OutcomeHighlight(outcome: Outcome<*>, modifier: Modifier = Modifier) {
     val color = remember { Animatable(Color.Transparent) }
     val borderWidth = remember { Animatable(0.0f) }
     val theme = LocalTheme.current
-    LaunchedEffect(animations) {
-        if (animations == Outcome.Progress) {
-            launch {
-                borderWidth.animateTo(10.0f, tween(300, easing = LinearOutSlowInEasing))
+    LaunchedEffect(outcome) {
+        when (outcome) {
+            Outcome.Progress -> {
+                launch {
+                    borderWidth.animateTo(10.0f, tween(300, easing = LinearOutSlowInEasing))
+                }
+                color.animateTo(theme.warning.copy(alpha = 0.5f), tween(300, easing = LinearOutSlowInEasing))
             }
-            color.animateTo(theme.warning.copy(alpha = 0.5f), tween(300, easing = LinearOutSlowInEasing))
-        } else if (animations is Outcome.Success) {
-            launch {
-                borderWidth.animateTo(25.0f, tween(300, easing = LinearOutSlowInEasing))
-                borderWidth.animateTo(0.0f, tween(300, easing = FastOutLinearInEasing))
+
+            is Outcome.Success -> {
+                launch {
+                    borderWidth.animateTo(25.0f, tween(300, easing = LinearOutSlowInEasing))
+                    borderWidth.animateTo(0.0f, tween(300, easing = FastOutLinearInEasing))
+                }
+                color.animateTo(theme.success, tween(300, easing = LinearOutSlowInEasing))
+                color.animateTo(Color.Transparent, tween(300, easing = FastOutLinearInEasing))
             }
-            color.animateTo(theme.success, tween(300, easing = LinearOutSlowInEasing))
-            color.animateTo(Color.Transparent, tween(300, easing = FastOutLinearInEasing))
+
+            is Outcome.Error -> {
+                launch {
+                    borderWidth.animateTo(25.0f, tween(300, easing = LinearOutSlowInEasing))
+                    borderWidth.animateTo(0.0f, tween(300, easing = FastOutLinearInEasing))
+                }
+                color.animateTo(theme.error, tween(300, easing = LinearOutSlowInEasing))
+                color.animateTo(Color.Transparent, tween(300, easing = FastOutLinearInEasing))
+            }
         }
     }
     Canvas(modifier) {

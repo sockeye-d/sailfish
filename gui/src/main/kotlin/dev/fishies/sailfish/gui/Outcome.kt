@@ -9,10 +9,13 @@ sealed class Outcome<out T> {
 
     @Immutable
     data class Success<T>(val data: T) : Outcome<T>()
+
+    @Immutable
+    data class Error(val exception: Exception) : Outcome<Nothing>()
 }
 
 val <T> Outcome<T>.dataOrNull
     get() = when (this) {
-        Outcome.Progress -> null
         is Outcome.Success -> data
+        else -> null
     }

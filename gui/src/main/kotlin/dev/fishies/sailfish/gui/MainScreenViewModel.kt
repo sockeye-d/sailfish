@@ -4,12 +4,13 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.withFrameMillis
 import dev.fishies.sailfish.*
 import dev.fishies.sailfish.elements.text
-import dev.fishies.sailfish.gui.util.watchDir
+import dev.fishies.sailfish.gui.util.*
 import dev.fishies.sailfish.ksp.AnimationMetadata
 import dev.fishies.sailfish.ksp.AnimationSymbol
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
+import org.gradle.tooling.BuildException
 import org.gradle.tooling.GradleConnector
 import java.net.URL
 import java.net.URLClassLoader
@@ -51,6 +52,7 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
     private val activeAnimation = MutableStateFlow<Animation?>(null)
     private val animationLength = MutableStateFlow(0)
     private val pausedFlow = MutableStateFlow(false)
+    private var paused by pausedFlow
 
     val animationState = combine(
         activeAnimationData,
@@ -91,8 +93,14 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
             if (it != null) {
                 emit(Outcome.Progress)
                 println("Rebuilding due to $it")
-                runInterruptible {
-                    connection.newBuild().forTasks("jar").setStandardOutput(System.out).run()
+                try {
+                    runInterruptible {
+                        connection.newBuild().forTasks("jar").setStandardOutput(System.out).run()
+                    }
+                } catch (e: BuildException) {
+                    println("Build failed :(")
+                    emit(Outcome.Error(e))
+                    return@transformLatest
                 }
                 println("Rebuilt!")
             }
@@ -207,19 +215,20 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
         return freshAnimation
     }
 
+    @JvmName("setPausedSetter")
     fun setPaused(paused: Boolean) {
-        pausedFlow.value = paused
+        this.paused = paused
     }
 
     val cursorFrame: StateFlow<Int>
         field = MutableStateFlow(1)
 
     fun setCursorFrame(cursor: Int, force: Boolean = false) {
-        val cursor = cursor.coerceIn(1..(animationLength.value.coerceAtLeast(1)))
+        val cursor = cursor.coerceIn(1..animationLength.value.coerceAtLeast(1))
         if (cursor == cursorFrame.value && !force) return
         seekAnimationTo(cursor)
         cursorFrame.value = cursor
-        setPaused(true)
+        paused = true
     }
 
     private fun seekAnimationTo(cursor: Int) {
@@ -248,11 +257,19 @@ class MainScreenViewModel(private val scope: CoroutineScope, val metadataPath: P
     }
 
     fun tickFrame() {
-        if (pausedFlow.value) return
+        if (paused) return
         val activeAnimation = activeAnimation.value ?: return
         if (!activeAnimation.isFinished) {
             seekBy(1)
         }
+    }
+
+    fun seekToEnd() {
+        seekAnimationTo(animationLength.value)
+    }
+
+    fun seekToStart() {
+        seekAnimationTo(1)
     }
 
     private fun makeAnimationData(

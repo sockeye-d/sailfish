@@ -19,9 +19,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.*
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import dev.fishies.sailfish.gui.util.onDragAbsolute
 import dev.fishies.sailfish.util.exp10
 import kotlin.math.*
@@ -33,6 +33,36 @@ class ScrubBarState {
 
     val speed = 2.0f
 }
+
+interface ScrubBarScope {
+    val getPositionF: (Float) -> Float
+    val getFrameF: (Float) -> Float
+    val size: IntSize
+    var scrollSpeed: Float
+}
+
+@Stable
+private class ScrubBarScopeImpl : ScrubBarScope {
+    override var getPositionF: (Float) -> Float by mutableStateOf({ 0f })
+    override var getFrameF: (Float) -> Float by mutableStateOf({ 0f })
+    override var scrollSpeed by mutableFloatStateOf(0f)
+    override var size by mutableStateOf(IntSize.Zero)
+}
+
+@Composable
+fun rememberScrubBarState() = remember { ScrubBarState() }
+
+fun ScrubBarScope.getPosition(frame: Float) = getPositionF(frame)
+
+@JvmName("getPositionWithContext")
+context(scope: ScrubBarScope)
+fun getPosition(frame: Float) = scope.getPositionF(frame)
+
+fun ScrubBarScope.getFrame(position: Float) = getFrameF(position)
+
+@JvmName("getFrameWithContext")
+context(scope: ScrubBarScope)
+fun getFrame(position: Float) = scope.getFrameF(position)
 
 val timelineElementAnimation: AnimationSpec<Float> = spring(stiffness = Spring.StiffnessHigh)
 val tickShape = RoundedCornerShape(2.0.dp)
@@ -52,8 +82,8 @@ fun ScrubBar(
     cursorFrame: Float,
     setCursorFrame: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    drawContent: DrawScope.(getPosition: (frame: Float) -> Float, getFrame: (position: Float) -> Float) -> Unit = { _, _ -> },
-    content: @Composable BoxScope.(getPosition: (frame: Float) -> Float, getFrame: (position: Float) -> Float) -> Unit = { _, _ -> },
+    drawContent: context(ScrubBarScope) DrawScope.() -> Unit = { _, _ -> },
+    content: @Composable context(ScrubBarScope) BoxScope.() -> Unit = { _, _ -> },
 ) {
     val contentColor = LocalContentColor.current
     val tickColor = lerp(LocalContentColor.current, MaterialTheme.colors.surface, 0.5f)
@@ -66,18 +96,44 @@ fun ScrubBar(
     val localFontSize = LocalTextStyle.current.fontSize
 
     fun updateCursorFrame() {
-        setCursorFrame(((mouseX + state.scroll) / 50f / state.zoom).roundToInt())
+        setCursorFrame(((mouseX + state.scroll) / 50f / state.zoom).roundToInt() + 1)
+    }
+
+    val textSize by derivedStateOf { measurer.measure("0", TextStyle(fontSize = localFontSize)).multiParagraph.height }
+
+    val scroll by derivedStateOf { smoothed.x }
+    val zoom by derivedStateOf { smoothed.y }
+
+    val scope = remember { ScrubBarScopeImpl() }.apply {
+        getPositionF = { it * 50f * zoom - scroll }
+        getFrameF = { (it + scroll) / 50f / zoom }
     }
 
     val modifier = modifier.scrollable(rememberScrollableState {
-        state.scroll = (state.scroll - it * state.speed).coerceAtLeast(-100f)
+        state.scroll = (state.scroll + it * state.speed).coerceAtLeast(-100f)
         it
     }, Orientation.Vertical).transformable(rememberTransformableState { zoomChange, _, _ ->
         val zoomChange = zoomChange.pow(state.speed)
         state.zoom *= zoomChange
         state.scroll = (-mouseX + (mouseX + state.scroll) * zoomChange).coerceAtLeast(-100f)
-    })
-    val textSize by derivedStateOf { measurer.measure("0", TextStyle(fontSize = localFontSize)).multiParagraph.height }
+    }).onSizeChanged {
+        scope.size = it
+    }
+
+    LaunchedEffect(state) {
+        var lastFrameMillis: Long? = null
+        while (true) {
+            // if (abs(scope.scrollSpeed) < Float.MIN_VALUE) continue
+            withFrameMillis { thisFrameMillis ->
+                lastFrameMillis?.let { lastFrameMillis ->
+                    val delta = (thisFrameMillis - lastFrameMillis) / 1000f
+                    state.scroll = (state.scroll + delta * scope.scrollSpeed).coerceAtLeast(-100f)
+                }
+                lastFrameMillis = thisFrameMillis
+            }
+        }
+    }
+
     Box(modifier) {
         Canvas(Modifier.matchParentSize().pointerInput(Unit) {
             awaitPointerEventScope {
@@ -99,7 +155,6 @@ fun ScrubBar(
                 }
             }
         }) {
-            val (scroll, zoom) = smoothed
             val scale = log10(3f / zoom)
             val scaleFloor = scale.toInt().coerceAtLeast(0)
             val powerScaleFloor = exp10(scaleFloor)
@@ -128,7 +183,7 @@ fun ScrubBar(
                     result, color, Offset(x - result.multiParagraph.width * 0.5f, 20.0f - result.multiParagraph.height)
                 )
             }
-            val cursorX = cursorFrame * 50f * zoom - scroll
+            val cursorX = (cursorFrame - 1) * 50f * zoom - scroll
             withTransform({ translate(left = cursorX - 1.0f, top = textSize) }) {
                 drawOutline(
                     tickShape.createOutline(Size(2.0f, size.height - textSize), layoutDirection, Density(density)),
@@ -142,37 +197,51 @@ fun ScrubBar(
                 )
             }
             withTransform({ translate(top = textSize) }) {
-                drawContent({ it * 50f * zoom - scroll }, { (it + scroll) / 50f / zoom })
+                with(scope) {
+                    drawContent()
+                }
             }
         }
 
-        val smoothScroll by derivedStateOf { smoothed.x }
-        val smoothZoom by derivedStateOf { smoothed.y }
-
-        content({ it * 50f * smoothZoom - smoothScroll }, { (it + smoothScroll) / 50f / smoothZoom })
+        with(scope) {
+            content()
+        }
     }
 }
 
+private const val accelFalloff = -30.0f
+private const val accelDeadzone = 40.0f
+private const val accelSpeed = 1000.0f
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
+context(scope: ScrubBarScope)
 fun TimelineHandle(
-    getPosition: (frame: Float) -> Float,
-    getFrame: (position: Float) -> Float,
     frame: Int,
     setFrame: (Int) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val getPosition by rememberUpdatedState(getPosition)
-    val getFrame by rememberUpdatedState(getFrame)
+    val scope by rememberUpdatedState(scope)
     val frame by rememberUpdatedState(frame)
     val animatedFrame by animateFloatAsState(frame.toFloat(), timelineElementAnimation)
-    val x by derivedStateOf { getPosition(animatedFrame) - 1f }
+    val x by derivedStateOf { scope.getPosition(animatedFrame) - 1f }
+    var initialPosition by remember { mutableStateOf(0.0f) }
     val modifier = modifier.absoluteOffset(x = x.dp).onDragAbsolute(
         PointerMatcher.Primary,
-        initialOffset = { Offset(getPosition(animatedFrame) - 1f, 0f) },
-    ) { (x, _) ->
-        setFrame(getFrame(x).roundToInt())
+        initialOffset = {
+            initialPosition = scope.getPosition(animatedFrame) - 1f
+            Offset(initialPosition, 0f)
+        },
+        onDragEnd = {
+            scope.scrollSpeed = 0.0f
+        }
+    ) { (x), (xAbsolute) ->
+        val leftAccel = accelSpeed * exp(xAbsolute.coerceAtLeast(0.0f) / accelFalloff)
+        val rightAccel = accelSpeed * exp((scope.size.width.toFloat() - xAbsolute).coerceAtLeast(0.0f) / accelFalloff)
+        // println("$rightAccel")
+        scope.scrollSpeed = rightAccel - leftAccel
+        setFrame(scope.getFrame(x).roundToInt())
     }.shadow(8.dp, timelineHandleShape)
     Surface(
         shape = timelineHandleShape,
